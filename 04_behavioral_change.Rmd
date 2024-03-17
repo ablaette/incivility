@@ -1,0 +1,250 @@
+---
+title: "Threatened Representation"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+bibliography: literatur.bibtex
+always_allow_html: true
+classoption: landscape
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r load_libraries, message = FALSE, echo = FALSE}
+library(dplyr)
+library(data.table)
+library(xts)
+library(haven)
+library(magrittr)
+library(tidyr)
+library(xtable)
+library(forcats)
+library(scales)
+library(crosstable)
+library(stargazer)
+library(jtools)
+library(broom.mixed) # to avoid later msg of loading
+library(ggplot2)
+library(flextable)
+library(officer)
+library(scales)
+library(stargazer)
+library(openxlsx)
+
+library(kommrep)
+stopifnot(packageVersion("kommrep") >= package_version("0.3.8"))
+```
+
+```{r set_options, include = FALSE}
+set_flextable_defaults(pct_digits = "#")
+options("modelsummary_format_numeric_latex" = "plain")
+```
+
+
+```{r make modified_table, echo = FALSE, results = "asis"}
+source("~/Lab/github/incivility/aux/kommrep_loc_lm.R")
+```
+
+
+\newpage
+
+## Certainty to stay by sex, class, migration background
+
+```{r echo = FALSE}
+exit <- kommrep_loc_lm %>%
+  
+  mutate(class = as_factor(v_schicht)) %>%
+  mutate(
+    `subjective class` = recode(
+      class,
+      `Der Oberschicht` = "high",
+      `Der oberen Mittelschicht` = "high",
+      `Der Mittelschicht` = "medium",
+      `Der unteren Mittelschicht` = "low",
+      `Der Arbeiterschicht` = "low",
+      `Der Unterschicht` = "low"
+    )) %>%
+  mutate(`subjective class` = na_if(`subjective class`, "Weiß nicht")) %>%
+  mutate(`subjective class` = droplevels(`subjective class`)) %>%
+  mutate(`subjective class` = as.factor(`subjective class`)) %>% 
+  mutate(`subjective class` = fct_rev(`subjective class`)) %>% 
+
+  select(stay, female_diverse, racialized, `subjective class`) %>%
+  
+  mutate(stay = ifelse(stay, "yes", "no / don't know")) %>%
+  mutate(stay = as.factor(stay)) %>% 
+  mutate(stay = fct_rev(stay)) %>% 
+  
+  mutate(gender = ifelse(female_diverse, "female/diverse", "male")) %>% 
+  
+  mutate(`racialized` = ifelse(racialized, "yes", "no")) %>%
+  mutate(`racialized` = fct_rev(as.factor(racialized))) %>% 
+
+  
+  select(-female_diverse) %>%
+
+  crosstable(by = stay, total = "none", percent_digits = 1, showNA = "no")
+
+exit %>% as_flextable(keep_id = FALSE, compact = FALSE)
+```
+
+
+\newpage
+
+
+## Types of behavioral change
+
+```{r, echo = FALSE}
+change_how <- kommrep_loc %>%
+  filter(v_sorge_umgang1 == 0) %>%
+  mutate(
+    behavior_Misstrauen = ifelse(v_sorge_umgang2 == 1L, TRUE, FALSE), # Steigerung von Misstrauen 
+    behavior_Offline = ifelse(v_sorge_umgang3 == 1L, TRUE, FALSE), # Verzicht auf soziale Medien
+    behavior_Schweigen = ifelse(v_sorge_umgang4 == 1L, TRUE, FALSE), #  Zurückhaltung bei Themen
+    behavior_Rückzug = ifelse(v_sorge_umgang5 == 1L, TRUE, FALSE), # Meidung von Orten und Veranstaltungen
+    behavior_Umzug = ifelse(v_sorge_umgang6 == 1L, TRUE, FALSE) # Wohnortwechsel
+  ) %>%
+  select(starts_with("behavior_")) %>%
+  pivot_longer(cols = starts_with("behavior")) %>%
+  mutate(name = gsub("^behavior_(.*?)$", "\\1", name)) %>%
+  mutate(name = recode(
+    name,
+    `Misstrauen` = "Distrust",
+    `Rückzug` = "Retreat",
+    `Schweigen` = "Silence",
+    `Umzug` = "Move houses"
+    )
+  ) %>% 
+  crosstable(by = value, percent_digits = 1)
+
+change_how %>% as_flextable(keep_id = FALSE, compact = TRUE)
+```
+
+
+\newpage
+
+## Behavioral change by sex, class, migration backgorund
+
+```{r, echo = FALSE}
+change_who <- kommrep_loc %>%
+  
+  select(v_sorge_umgang1, v_geschlecht, v_mig_background, v_schicht) %>%
+  
+  mutate(`behavioral change` = ifelse(v_sorge_umgang1 == 0, "yes", "no")) %>%
+
+  mutate(sex = as_factor(v_geschlecht)) %>%
+  mutate(sex = recode(
+    sex,
+    `divers` = "nonbinary",
+    `weitere / other` = "nonbinary",
+    `männlich` = "male", `weiblich` = "female",
+    `weitere / andere` = "other"
+  )) %>%
+  
+  mutate(`migration background` = ifelse(v_mig_background, "yes", "no")) %>%
+
+  mutate(class = as_factor(v_schicht)) %>%
+  mutate(
+    class = recode(
+      class,
+      `Der Oberschicht` = "high",
+      `Der oberen Mittelschicht` = "high",
+      `Der Mittelschicht` = "medium",
+      `Der unteren Mittelschicht` = "low",
+      `Der Arbeiterschicht` = "low",
+      `Der Unterschicht` = "low"
+    )) %>%
+  mutate(class = na_if(class, "Weiß nicht")) %>%
+  mutate(class = droplevels(class)) %>%
+  
+  select(`behavioral change`, sex, `migration background`, class) %>%
+  mutate(across(everything(), as.vector)) %>%
+  crosstable(by = `behavioral change`, total = "none", percent_digits = 1, showNA = "no")
+
+change_who %>% as_flextable(keep_id = FALSE, compact = FALSE)
+```
+
+
+```{r, echo = FALSE}
+SEX <- kommrep_loc %>%
+  select(v_sorge_umgang1, v_geschlecht) %>%
+  mutate(`behavioral change` = ifelse(v_sorge_umgang1 == 0, "yes", "no")) %>%
+  mutate(sex = as_factor(v_geschlecht)) %>%
+  mutate(sex = recode(
+    sex,
+    `männlich` = "male",
+    `weiblich` = "female/nonbinary",
+    `divers` = "female/nonbinary",
+    `weitere / andere` = "female/nonbinary")
+  ) %>%
+  mutate(sex = factor(sex, levels = c("male", "female/nonbinary"))) %>%
+  select(sex, `behavioral change`) %>%
+  group_by(sex, `behavioral change`) %>%
+  filter(!is.na(sex)) %>%
+  summarise(N = n()) %>%
+  group_by(sex) %>%
+  group_split() %>%
+  lapply(function(x) mutate(x, share = x$N / sum(x$N))) %>%
+  bind_rows() %>%
+  mutate(percent = round(share * 100, 1)) %>%
+  ggplot(aes(x = sex, y = percent, fill = `behavioral change`)) +
+    geom_bar(stat = "identity", position = "stack") +
+    geom_text(aes(label = paste(percent, "%")), position = position_stack(0.5), color = "white")
+
+MIG <- kommrep_loc %>%
+  select(v_sorge_umgang1, v_mig_background) %>%
+  mutate(`behavioral change` = ifelse(v_sorge_umgang1 == 0, "yes", "no")) %>%
+  mutate(`migration background` = ifelse(v_mig_background, "yes", "no")) %>%
+  filter(!is.na(`migration background`)) %>%
+  group_by(`migration background`, `behavioral change`) %>%
+  summarise(N = n()) %>%
+  group_by(`migration background`) %>%
+  group_split() %>%
+  lapply(function(x) mutate(x, share = x$N / sum(x$N))) %>%
+  bind_rows() %>%
+  mutate(percent = round(share * 100, 1)) %>%
+  ggplot(aes(x = `migration background`, y = percent, fill = `behavioral change`)) +
+    geom_bar(stat = "identity", position = "stack") +
+    geom_text(aes(label = paste(percent, "%")), position = position_stack(0.5), color = "white") +
+    theme(axis.title.y = element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())
+  
+
+CLASS <- kommrep_loc %>%
+  select(v_sorge_umgang1, v_schicht) %>%
+  mutate(`behavioral change` = ifelse(v_sorge_umgang1 == 0, "yes", "no")) %>%
+  mutate(`class` = as_factor(v_schicht)) %>%
+  mutate(
+    `class` = recode(
+      `class`,
+      `Der Oberschicht` = "upper",
+      `Der oberen Mittelschicht` = "upper",
+      `Der Mittelschicht` = "middle",
+      `Der unteren Mittelschicht` = "low",
+      `Der Arbeiterschicht` = "low",
+      `Der Unterschicht` = "low"
+    )) %>%
+  mutate(`class` = na_if(`class`, "Weiß nicht")) %>%
+  filter(!is.na(class)) %>%
+  mutate(`class` = droplevels(`class`)) %>%
+  select(`behavioral change`, `class`) %>%
+  group_by(`class`, `behavioral change`) %>%
+  summarise(N = n()) %>%
+  group_by(`class`) %>%
+  group_split() %>%
+  lapply(function(x) mutate(x, share = x$N / sum(x$N))) %>%
+  bind_rows() %>%
+  mutate(percent = round(share * 100, 1)) %>%
+  ggplot(aes(x = `class`, y = percent, fill = `behavioral change`)) +
+    geom_bar(stat = "identity", position = "stack") +
+    geom_text(aes(label = paste(percent, "%")), position = position_stack(0.5), color = "white")  +
+    theme(axis.title.y = element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())
+
+ggarrange(SEX, MIG, CLASS, common.legend = TRUE, nrow = 1)
+
+ggsave("~/Lab/github/incivility/svg/behavioral_change_by_group.svg", width = 24, height = 12, units = "cm")
+```

@@ -1,0 +1,193 @@
+---
+title: "Threatened Representation"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+bibliography: literatur.bibtex
+always_allow_html: true
+classoption: landscape
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r load_libraries, message = FALSE, echo = FALSE}
+library(dplyr)
+library(data.table)
+library(xts)
+library(haven)
+library(magrittr)
+library(tidyr)
+library(xtable)
+library(forcats)
+library(scales)
+library(crosstable)
+library(stargazer)
+library(jtools)
+library(broom.mixed) # to avoid later msg of loading
+library(ggplot2)
+library(flextable)
+library(officer)
+library(scales)
+library(stargazer)
+library(openxlsx)
+
+library(kommrep)
+stopifnot(packageVersion("kommrep") >= package_version("0.3.8"))
+```
+
+```{r set_options, include = FALSE}
+set_flextable_defaults(pct_digits = "#")
+options("modelsummary_format_numeric_latex" = "plain")
+```
+
+```{r make modified_table, echo = FALSE, results = "asis"}
+source("~/Lab/github/incivility/aux/kommrep_loc_lm.R")
+```
+
+
+## Descriptive representation: Determinants of certainty to stay
+
+```{r explaining_resilience, results = "asis", echo = FALSE}
+m1 <- glm(
+  stay ~ threat_verbal + threat_physical,
+  kommrep_loc_lm,
+  family = binomial("logit")
+)
+
+m2 <- glm(
+  stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE,
+  kommrep_loc_lm,
+  family = binomial("logit")
+)
+
+
+m3 <- glm(
+  stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class,
+  kommrep_loc_lm,
+  family = binomial("logit")
+)
+
+m4 <- glm(
+  stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized,
+  kommrep_loc_lm,
+  family = binomial("logit")
+)
+
+m5 <- glm(
+  stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized + soc + gen + div,
+  kommrep_loc_lm,
+  family = binomial("logit")
+)
+
+modelsummary::modelsummary(
+  models = list(
+    A = m1,
+    B = m2,
+    C = m3,
+    D = m4,
+    E = m5
+  ),
+  estimate = "{estimate} ({std.error}){stars}",
+  statistic = NULL,
+  output = "latex",
+  coef_map = c(
+    "threat_verbal" = "Communicative threat ",
+    "threat_physical" = "Physical threat",
+    "female_diverseTRUE" = "Female or diverse (Ref. no)",
+    "class" = "Class",
+    "racializedTRUE" = "Racialized group (Ref. no)",
+    "socTRUE" = "Primary Topic: Class",
+    "genTRUE" = "Primary Topic: Gender",
+    "divTRUE" = "Primary Topic: Migration",
+    "age" = "Age",
+    "AfDTRUE" = "AfD (Ref. other)",
+    "SPDTRUE" = "SPD",
+    "GRUENETRUE" = "B'90/Grüne",
+    "LINKETRUE" = "LINKE",
+    "(Intercept)" = "(Intercept)"
+  ),
+  stars = c('*' = .05, '**' = .01, '***' = .001),
+  title = ""
+  #gof_omit = "BIC|AIC|RMSE|Log.Lik|F"
+)
+```
+
+
+\newpage
+
+```{r, results = "asis"}
+m1 <- lm(
+  behavioral_change ~ threat_verbal + threat_physical,
+  kommrep_loc_lm
+)
+
+m2 <- lm(
+  behavioral_change ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE,
+  kommrep_loc_lm
+)
+
+
+m3 <- lm(
+  behavioral_change ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class,
+  kommrep_loc_lm
+)
+
+m4 <- lm(
+  behavioral_change ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized,
+  kommrep_loc_lm
+)
+
+
+m5 <- lm(
+  behavioral_change ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized + soc + gen + div,
+  kommrep_loc_lm
+)
+
+
+# stargazer::stargazer(
+#   m1, m2, m3, m4, m5,
+#   type = "latex",
+#   single.row = TRUE,
+#   header = FALSE,
+#   report = 'vc*',
+#   omit.stat = c("f", "ser")
+# )
+
+modelsummary::modelsummary(
+  models = list(A = m1, B = m2, C = m3, D = m4, E = m5),
+  estimate = "{estimate} ({std.error}){stars}",
+  statistic = NULL,
+  output = "latex",
+  coef_map = c(
+    "threat_verbal" = "Communicative threat",
+    "threat_physical" = "Physical threat",
+    "female_diverseTRUE" = "Female or diverse (Ref. no)",
+    "class" = "Class",
+    "racializedTRUE" = "Racialized group (Ref. no)",
+    "socTRUE" = "Primary Topic: Class",
+    "genTRUE" = "Primary Topic: Gender",
+    "divTRUE" = "Primary Topic: Migration",
+    "age" = "Age",
+    "AfDTRUE" = "AfD (Ref. other)",
+    "SPDTRUE" = "SPD",
+    "GRUENETRUE" = "B'90/Grüne",
+    "LINKETRUE" = "LINKE",
+    "(Intercept)" = "(Intercept)"
+  ),
+  stars = c('*' = .05, '**' = .01, '***' = .001),
+  title = "",
+  gof_omit = "BIC|AIC|RMSE|Log.Lik|F"
+)
+
+```
+
+
+\newpage
+
+## Multivariate analysis (plot)
+
+
+```{r, echo = FALSE}
+plot_summs(m1, m2, m3, m4, m5, colors = "Qual1")
+```

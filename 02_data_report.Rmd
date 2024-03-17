@@ -1,0 +1,178 @@
+---
+title: "Threatened Representation"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+bibliography: literatur.bibtex
+always_allow_html: true
+classoption: landscape
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r load_libraries, message = FALSE, echo = FALSE}
+library(dplyr)
+library(magrittr)
+library(tidyr)
+library(forcats)
+library(haven)
+library(crosstable)
+library(scales)
+library(ggplot2)
+library(flextable)
+library(openxlsx)
+library(ggplot2)
+library(kommrep)
+stopifnot(packageVersion("kommrep") >= package_version("0.3.8"))
+```
+
+```{r set_options, include = FALSE}
+set_flextable_defaults(pct_digits = "#")
+options("modelsummary_format_numeric_latex" = "plain")
+```
+
+```{r load_wb, echo = FALSE}
+wb_fname <- "~/Lab/github/incivility/xlsx/incivility.xlsx"
+wb <- loadWorkbook(xlsx = wb_fname)
+```
+
+
+## Population of representatives contacted
+
+<!-- values computed from DB, different from report #1 -->
+
+```{r grundgesamtheit, echo = FALSE, fig.width = 8}
+db_final_fname <- "~/Data/hbs/db/HBS-Kontaktdatenbank_2022-07-21.xlsx"
+db <- openxlsx::read.xlsx(xlsxFile = db_final_fname) %>% 
+  filter(!is.na(Name)) %>% 
+  unique()
+
+n_representatives <- db %>% 
+  nrow()
+
+n_representatives_nomail <- db %>% 
+  filter(is.na(Mailadresse)) %>% 
+  nrow()
+
+participants <- tibble(
+  `population (total)` = n_representatives,
+  `representatives no contact details` = sprintf(
+    "%d (%g per cent)",
+    n_representatives_nomail,
+    round(n_representatives_nomail / n_representatives * 100, 1)
+  )
+)
+
+flextable(participants) %>% width(width = 2)
+```
+
+
+```{r parent_population, echo = FALSE}
+if (!"01_Population" %in% getSheetNames(wb_fname))
+  addWorksheet(wb, sheetName = "01_Population")
+writeData(wb, sheet = "01_Population", x = participants)
+```
+
+
+## Termination rate
+
+```{r abbruchquote, echo = FALSE}
+termination_rate <- 100 - round(nrow(kommrep_loc) / nrow(kommrep) * 100, 1)
+participation_rate_started <- percent(nrow(kommrep) / nrow(filter(mailout, run == 0)), accuracy = 0.1)
+participation_rate_finished <- percent(nrow(kommrep_loc) / nrow(filter(mailout, run == 0)), accuracy = 0.1)
+```
+
+
+\newpage
+
+## Return rate
+
+```{r return_rate, echo = FALSE}
+returned <- tibble(
+  `total` = nrow(kommrep), # paper #1: 2592
+  `partial` = nrow(filter(kommrep, v_lastpage == 40)), # paper #1: 2166
+  `full` = nrow(kommrep) - nrow(filter(kommrep, v_lastpage == 40))
+)
+
+flextable(returned) %>% align(i = 1, j = 1:3, align = "center")
+```
+
+```{r wb_grundgesamtheit, echo = FALSE}
+if (!"02_ReturnRate" %in% getSheetNames(wb_fname))
+  addWorksheet(wb, sheetName = "02_ReturnRate")
+writeData(wb, sheet = "02_ReturnRate", x = returned)
+```
+
+
+\newpage
+
+## Survey participation by party
+
+```{r participation_by_party, echo = FALSE, results = "asis"}
+mailed_by_party <- city_party %>%
+  ungroup() %>%
+  select(-Stadt) %>%
+  mutate(other = TOTAL - (AfD + `Bündnis 90/Die Grünen` + CDU + CSU + `Die Linke` + FDP + Piratenpartei + SPD)) %>%
+  pivot_longer(everything()) %>%
+  mutate(party = recode(name, `Piratenpartei` = "other")) %>%
+  select(-name) %>%
+  group_by(party) %>%
+  summarise(total = sum(value))
+
+returned_by_party <- kommrep_loc %>%
+  mutate(party = as.character(as_factor(v_part1))) %>%
+  mutate(party = replace_na(party, "other")) %>%
+  mutate(party = recode(
+    party,
+    `Unabhängige Kandidatur, keine Partei/Wählerliste` = "other",
+    `Piratenpartei` = "other",
+    `Freie Wähler` = "other"
+  )) %>%
+  group_by(party) %>%
+  summarise(participants = n()) %>%
+  bind_rows(tibble(party = "TOTAL", participants = sum(.$participants))) %>%
+  left_join(mailed_by_party, by = "party") %>%
+  mutate(rate = round(participants / total * 100, digits = 2L)) %>% 
+  mutate(dummy = 0) %>%
+  mutate(dummy = ifelse(party == "other", 1L, 0L)) %>%
+  mutate(dummy = ifelse(party == "TOTAL", 2L, dummy)) %>%
+  arrange(dummy) %>%
+  select(-dummy)
+
+returned_by_party %>%
+  flextable() %>%
+  autofit() %>%
+  hline(i = 7, border = officer::fp_border(style = "dotted")) %>%
+  hline(i = 8)
+```
+
+
+```{r participation_by_party_xlsx, echo = FALSE}
+if (!"03_ReturnRateParty" %in% getSheetNames(wb_fname))
+  addWorksheet(wb, sheetName = "02_ReturnRateParty")
+writeData(wb, sheet = "02_ReturnRateParty", x = returned)
+```
+
+
+```{r participation_by_party_plot, echo = FALSE}
+returned_by_party %>%
+  filter(party != "TOTAL") %>% 
+  mutate(party = factor(party, levels = party[order(rate, decreasing = TRUE)])) %>%
+  ggplot(aes(x = party, y = rate)) + 
+  geom_bar(stat = "identity", fill = "cadetblue3") +
+  xlab("Party") +
+  ylab("Return Rate") +
+  ylim(0,68) +
+  geom_text(
+    aes(label = sprintf("%s\n(%s/%s)", paste(round(rate, 1), "%"), participants, total)),
+    vjust = -0.5,
+    color = "black"
+  )
+
+ggsave("~/Lab/github/incivility/svg/return_rate_party.svg", width = 24, height = 12, units = "cm")
+```
+
+```{r create_wb, echo = FALSE}
+saveWorkbook(wb = wb, file = wb_fname, overwrite = TRUE)
+```

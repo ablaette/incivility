@@ -1,0 +1,195 @@
+---
+title: "Threatened Representation"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+bibliography: literatur.bibtex
+always_allow_html: true
+classoption: landscape
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r load_libraries, message = FALSE, echo = FALSE}
+library(dplyr)
+library(data.table)
+library(xts)
+library(haven)
+library(magrittr)
+library(tidyr)
+library(xtable)
+library(forcats)
+library(scales)
+library(crosstable)
+library(stargazer)
+library(jtools)
+library(broom.mixed) # to avoid later msg of loading
+library(ggplot2)
+library(flextable)
+library(officer)
+library(scales)
+library(stargazer)
+library(openxlsx)
+
+library(kommrep)
+stopifnot(packageVersion("kommrep") >= package_version("0.3.8"))
+```
+
+```{r set_options, include = FALSE}
+set_flextable_defaults(pct_digits = "#")
+options("modelsummary_format_numeric_latex" = "plain")
+```
+
+```{r make modified_table, echo = FALSE, results = "asis"}
+source("~/Lab/github/incivility/aux/kommrep_loc_lm.R")
+```
+
+
+
+
+\newpage
+
+## Expected and experienced threats and behavioral change
+
+```{r threat_and_change, echo = FALSE}
+behavioral_change <- kommrep_loc_lm %>%
+  select(threat_experience, threat_verbal, threat_physical, behavioral_change) %>% # Verhaltensänderung? 1504 1=Ja!
+  
+  mutate(`threat experienced` = ifelse(threat_experience, "yes", "no")) %>%
+  mutate(`communicative threat` = ifelse(threat_verbal > 0, "yes", "no")) %>% 
+  mutate(`physical threat` = ifelse(threat_physical > 0, "yes", "no")) %>% 
+           
+  mutate(`behavioral change` = ifelse(behavioral_change > 0, "yes", "no")) %>%
+  
+  select(`threat experienced`, `communicative threat`, `physical threat`, `behavioral change`) %>% 
+  crosstable(
+    by = `behavioral change`,
+    percent_digits = 1,
+    showNA = "no",
+    #     percent_pattern = list(
+    #   body = "{p_row}\n({n})",
+    #   total_row = "{p_row}\n({n})",
+    #   total_col = "{p_row}\n({n})",
+    #   total_all = "{p_row}\n({n})"
+    # ),
+    total = "none",
+  )
+
+behavioral_change %>% as_flextable(keep_id = FALSE, compact = FALSE)
+```
+
+
+
+
+\newpage
+
+## Key concerns and threat_experience
+
+```{r key_concerns, echo = FALSE}
+kommrep_loc %>% 
+  select(v_bedrohung, v_sorge_umgang1, v_issue_1_recoded) %>%
+  mutate(behavioral_change = ifelse(as.vector(v_sorge_umgang1) == 0L, TRUE, FALSE)) %>%
+  mutate(threat_experience = ifelse(as.vector(v_bedrohung) == 1L, TRUE, FALSE)) %>% 
+  #  mutate(threat_index_norm = threat_index / 6) %>%
+  mutate(
+    v_issue_1_min = recode(
+      v_issue_1_recoded,
+      `Kultur` = "art and culture",
+      `Umwelt/Klima/Tierschutz` = "climate and environment",
+      `Bildung/Jugend/Kinder` = "education and youth",
+      `Sozialpolitik` = "social policy",
+      `Sicherheit/Ordnung` = "security and order",
+      `Stadtentwicklung/Verkehr/Mobilität` = "urban development",
+      `Wohnen/Bau` = "urban development",
+      `Gleichstellung` = "equality and diversity",
+      `Wirtschaft/Finanzen` = "economy and finance",
+      `Schule` = "education and youth",
+      `Digitalisierung` = "digitalisation",
+      `Teilhabe/Partizipation/Bürgernähe` = "participation",
+      `Migration/Integration` = "migration and integration",
+      `Armut/Obdachlosigkeit` = "social policy",
+      `Extremismus` = "equality and diversity",
+      `Diversity und Antidiskriminierung` = "equality and diversity",
+      `Sport` = "sport",
+      `Sozialer Zusammenhalt` = "social policy",
+      `Gesundheit` = "health",
+      `Europa/Internationales` = "other",
+      `Sonstiges` = "other"
+    )
+  ) %>% 
+  mutate(
+    env = ifelse(v_issue_1_min == "climate and environment", TRUE, FALSE),
+    edu = ifelse(v_issue_1_min == "education and youth", TRUE, FALSE),
+    soc = ifelse(v_issue_1_min == "social policy", TRUE, FALSE),
+    sec = ifelse(v_issue_1_min == "security and order", TRUE, FALSE),
+    dev = ifelse(v_issue_1_min == "urban development", TRUE, FALSE),
+    art = ifelse(v_issue_1_min == "art and culture", TRUE, FALSE),
+    div = ifelse(v_issue_1_min == "equality and diversity", TRUE, FALSE),
+    ec = ifelse(v_issue_1_min == "economy and finance", TRUE, FALSE),
+    dig = ifelse(v_issue_1_min == "digitalisation", TRUE, FALSE),
+    par = ifelse(v_issue_1_min == "participation", TRUE, FALSE),
+    mig = ifelse(v_issue_1_min == "migration and integration", TRUE, FALSE),
+    spo = ifelse(v_issue_1_min == "sport", TRUE, FALSE),
+    san = ifelse(v_issue_1_min == "health", TRUE, FALSE)
+  ) %>% 
+  select(threat_experience, v_issue_1_min) %>%
+  crosstable(
+    by = threat_experience,
+    total = "none",
+    percent_digits = 0,
+    showNA = "no"
+  ) %>% 
+  as_flextable(keep_id = FALSE, compact = TRUE)
+```
+
+
+\newpage
+
+## Correlation analysis
+
+```{r}
+kommrep_loc_lm %>% 
+  select(
+    behavioral_change,
+    stay,
+    threat_verbal, 
+    threat_physical,
+    age,
+    AfD,
+    SPD, 
+    GRUENE, LINKE,
+    female_diverse,
+    class,
+    muslim,
+    sintiroma,
+    eastern,
+    soc,
+    gen,
+    div
+  ) %>%
+  rename(
+    `physical` = "threat_physical",
+    `verbal` = "threat_verbal",
+    `behavior` = "behavioral_change"
+  ) %>% 
+  cor(method = "pearson", use = "pairwise.complete.obs") %>% 
+  ggcorrplot::ggcorrplot(type = "lower", method = "circle", lab_size = 0.5)
+```
+
+
+\newpage 
+
+## Factor analysis of types of threats encountered
+
+```{r}
+kommrep_loc %>%
+  select(-v_perzb_art6, -v_perzb_art7) %>%
+  select(starts_with("v_perzb_art")) %>%
+  mutate(across(everything(), as_factor)) %>%
+  mutate(across(everything(), as.integer)) %>%
+  mutate(across(everything(), function (x) x - 1)) %>%
+  na.omit() %>% 
+  factanal(2L, rotation = "varimax")
+
+```

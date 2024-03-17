@@ -1,0 +1,1137 @@
+---
+title: "Bedrohung und Resilienz der kommunalen Demokratie"
+subtitle: "Abbildungen und Tabellen"
+date: "`r Sys.Date()`"
+output: word_document
+bibliography: literatur.bibtex
+always_allow_html: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r load_libraries, message = FALSE, echo = FALSE}
+library(dplyr)
+library(data.table)
+library(xts)
+library(haven)
+library(magrittr)
+library(tidyr)
+library(xtable)
+library(forcats)
+library(scales)
+library(crosstable)
+library(stargazer)
+library(jtools)
+library(broom.mixed) # to avoid later msg of loading
+library(ggplot2)
+library(flextable)
+library(officer)
+library(scales)
+library(stargazer)
+library(openxlsx)
+```
+
+
+```{r check_version, echo = FALSE}
+library(kommrep)
+stopifnot(packageVersion("kommrep") == package_version("0.2.0"))
+```
+
+```{r create_wb, echo = FALSE}
+wb <- createWorkbook(
+  creator = "Andreas Blätte",
+  title = "Auswertungen der Großstadtbefragung 2022"
+)
+wb_fname <- "~/Lab/github/vielfaltsstudien/bedrohungen/threats.xlsx"
+```
+
+\newpage
+<br/>
+
+**Tabelle 1: Amts- und Mandatsträger\*innen in den deutschen Großstädten (Grundgesamtheit)**
+&nbsp;
+
+```{r grundgesamtheit, echo = FALSE, fig.width = 8}
+participants <- tibble(
+  `Grundgesamtheit (total)` = 6412,
+  `Amts- und Mandatsträger*innen ohne Kontaktmöglichkeit` = "649 (10%)",
+  `Erreichbare Grundgesamtheit* (N)` = "5763 (90%)"
+)
+
+flextable(participants) %>% width(width = 2)
+```
+
+```{r wb_grundgesamtheit, echo = FALSE}
+addWorksheet(wb, sheetName = "Grundgesamtheit")
+writeDataTable(wb, sheet = "Grundgesamtheit", x = participants)
+```
+
+
+```{r abbruchquote, echo = FALSE}
+termination_rate <- 100 - round(nrow(kommrep_loc) / nrow(kommrep) * 100, 1)
+participation_rate_started <- percent(nrow(kommrep) / nrow(filter(mailout, run == 0)), accuracy = 0.1)
+participation_rate_finished <- percent(nrow(kommrep_loc) / nrow(filter(mailout, run == 0)), accuracy = 0.1)
+```
+
+\newpage
+
+**Tabelle 2: Rücklaufquote**
+<br/><br/>
+
+```{r tabelle_grundgesamtheit, echo = FALSE}
+returned <- tibble(
+  `Rücklauf (total)` = 2592,
+  `vollständig ausgefüllt` = 2166,
+  `teilweise ausgefüllt` = 426,
+  `Rücklauf-quote` = "44.9 %",
+  `Nettorücklauf-quote` = "37.6 %"
+)
+
+flextable(returned) %>% align(i = 1, j = 1:5, align = "center")
+```
+
+
+```{r create_sheet_ruecklaufquote, echo = FALSE}
+addWorksheet(wb, sheetName = "Rücklaufquote")
+writeDataTable(wb, sheet = "Rücklaufquote", x = returned)
+```
+
+
+\newpage
+
+**Tabelle 3: Rücklaufquote nach Parteien**
+
+```{r participation_by_party, echo = FALSE, results = "asis"}
+mailed_by_party <- city_party %>%
+  ungroup() %>%
+  select(-Stadt) %>%
+  mutate(andere = TOTAL - (AfD + `Bündnis 90/Die Grünen` + CDU + CSU + `Die Linke` + FDP + Piratenpartei + SPD)) %>%
+  pivot_longer(everything()) %>%
+  mutate(party = recode(name, `Piratenpartei` = "andere")) %>%
+  select(-name) %>%
+  group_by(party) %>%
+  summarise(total = sum(value))
+
+returned_by_party <- kommrep_loc %>%
+  mutate(party = as.character(as_factor(v_part1))) %>%
+  mutate(party = replace_na(party, "andere")) %>%
+  mutate(party = recode(
+    party,
+    `Unabhängige Kandidatur, keine Partei/Wählerliste` = "andere",
+    `Piratenpartei` = "andere",
+    `Freie Wähler` = "andere"
+  )) %>%
+  group_by(party) %>%
+  summarise(participants = n()) %>%
+  bind_rows(tibble(party = "TOTAL", participants = sum(.$participants))) %>%
+  left_join(mailed_by_party, by = "party") %>%
+  mutate(rate = round(participants / total * 100, digits = 2L)) %>% 
+  mutate(dummy = 0) %>%
+  mutate(dummy = ifelse(party == "andere", 1L, 0L)) %>%
+  mutate(dummy = ifelse(party == "TOTAL", 2L, dummy)) %>%
+  arrange(dummy) %>%
+  select(-dummy)
+
+returned_by_party %>%
+  flextable() %>%
+  autofit() %>%
+  hline(i = 7, border = officer::fp_border(style = "dotted")) %>%
+  hline(i = 8)
+```
+
+```{r create_sheet_ruecklauf_party, echo = FALSE}
+addWorksheet(wb, sheetName = "RücklaufParteien")
+writeDataTable(wb, sheet = "RücklaufParteien", x = returned_by_party)
+```
+
+
+\newpage
+
+**Abbildung: Bedrohungserfahrungen**
+
+```{r beleidigt, echo = FALSE, results = "asis"}
+kommrep_loc_min <- kommrep_loc %>%
+  select(v_bedrohung, v_geschlecht, v_mig_background, db_bundesland) %>%
+  mutate(threat = as_factor(v_bedrohung)) %>%
+  mutate(threat = recode(threat, `Weiß nicht` = "Weiß nicht / keine Angabe")) %>%
+  mutate(threat = replace_na(threat, "Weiß nicht / keine Angabe")) 
+
+kommrep_loc_min %>% 
+  group_by(threat) %>%
+  summarise(N = n()) %>%
+  mutate(Prozent = N / sum(N)) %>%
+  rename(Bedrohungswahrnehmung = "threat") %>%
+  ggplot(aes(x = Bedrohungswahrnehmung, y = Prozent, label = N)) + 
+  geom_bar(stat = "identity") + 
+  geom_text(
+     position = position_dodge(width = .9),    # move to center of bars
+     vjust = -0.5,    # nudge above top of bar
+     size = 3
+  ) + 
+  scale_y_continuous(labels = scales::percent)
+```
+
+
+\newpage
+
+**Tabelle 4a: Bedrohungserfahrung nach Geschlecht, Migrationshintergrund, Schichtzugehörigkeit**
+
+```{r, echo = FALSE}
+threatened1 <- kommrep_loc %>%
+  
+  select(v_bedrohung, v_geschlecht, v_mig_background, v_schicht) %>%
+  
+  mutate(Bedrohungserfahrung = as_factor(v_bedrohung)) %>%
+  mutate(Bedrohungserfahrung = recode(Bedrohungserfahrung, `Weiß nicht` = "Weiß nicht / keine Angabe")) %>%
+  mutate(Bedrohungserfahrung = replace_na(Bedrohungserfahrung, "Weiß nicht / keine Angabe")) %>%
+  
+  mutate(Geschlecht = as_factor(v_geschlecht)) %>%
+  mutate(Geschlecht = recode(Geschlecht, `divers` = "nichtbinär", `weitere / andere` = "nichtbinär")) %>%
+  
+  mutate(Migrationshintergrund = ifelse(v_mig_background, "Ja", "Nein")) %>%
+
+  mutate(Schichtzugehörigkeit = as_factor(v_schicht)) %>%
+  mutate(
+    Schichtzugehörigkeit = recode(
+      Schichtzugehörigkeit,
+      `Der Oberschicht` = "hoch",
+      `Der oberen Mittelschicht` = "hoch",
+      `Der Mittelschicht` = "mittel",
+      `Der unteren Mittelschicht` = "niedrig",
+      `Der Arbeiterschicht` = "niedrig",
+      `Der Unterschicht` = "niedrig"
+    )) %>%
+  mutate(Schichtzugehörigkeit = na_if(Schichtzugehörigkeit, "Weiß nicht")) %>%
+  mutate(Schichtzugehörigkeit = droplevels(Schichtzugehörigkeit)) %>%
+  
+  select(Bedrohungserfahrung, Geschlecht, Migrationshintergrund, Schichtzugehörigkeit) %>%
+  mutate(across(everything(), as.vector)) %>%
+  crosstable(
+    by = Bedrohungserfahrung,
+    total = "row",
+    percent_digits = 0,
+    showNA = "no",
+    percent_pattern = list(
+      body = "{n}\n({p_row})",
+      total_row = "{n}\n({p_row})",
+      total_col = "{n}\n({p_row})",
+      total_all = "{n}\n({p_row})"
+    )
+  )
+
+threatened1 %>% as_flextable(keep_id = FALSE, compact = FALSE)
+```
+
+```{r create_sheet_threats, echo = FALSE}
+addWorksheet(wb, sheetName = "Bedrohungen1")
+writeDataTable(wb, sheet = "Bedrohungen1", x = threatened1)
+```
+
+
+\newpage
+
+**Tabelle 4b: Bedrohungserfahrung nach Rolle**
+
+```{r, echo = FALSE}
+threatened2 <- kommrep %>%
+  filter(v_lastpage == 40) %>%
+  select(v_bedrohung, v_wahlamt1, v_wahlamt2, v_wahlamt3) %>%
+  
+  mutate(Bedrohungserfahrung = as_factor(v_bedrohung)) %>%
+  mutate(Bedrohungserfahrung = recode(Bedrohungserfahrung, `Weiß nicht` = "Weiß nicht / keine Angabe")) %>%
+  mutate(Bedrohungserfahrung = replace_na(Bedrohungserfahrung, "Weiß nicht / keine Angabe")) %>%
+  
+  mutate(Stadtrat = as_factor(v_wahlamt1)) %>%
+  mutate(Stadtrat = recode(Stadtrat, `Nicht Gewählt` = "Nein")) %>%
+  
+  mutate(Vorsitz = as_factor(v_wahlamt2)) %>%
+  mutate(Vorsitz = recode(Vorsitz, `Nicht Gewählt` = "Nein")) %>%
+  
+  mutate(Verwaltung = as_factor(v_wahlamt3)) %>%
+  mutate(Verwaltung = recode(Verwaltung, `Nicht Gewählt` = "Nein")) %>%
+  
+  select(Bedrohungserfahrung, Stadtrat, Vorsitz, Verwaltung) %>%
+  mutate(across(everything(), as.vector)) %>%
+  crosstable(
+    by = Bedrohungserfahrung,
+    total = "row",
+    percent_digits = 0,
+    showNA = "no",
+  )
+
+threatened2 %>% as_flextable(keep_id = FALSE, compact = FALSE)
+```
+
+```{r create_sheet_threats2, echo = FALSE}
+addWorksheet(wb, sheetName = "Bedrohungen2")
+writeDataTable(wb, sheet = "Bedrohungen2", x = threatened2)
+```
+
+
+\newpage
+
+**Tabelle 4c: Bedrohungserfahrung nach Alter**
+
+```{r, echo = FALSE}
+threatened3 <- kommrep %>%
+  filter(v_lastpage == 40) %>%
+  select(v_bedrohung, v_alter) %>%
+  
+  mutate(Bedrohungserfahrung = as_factor(v_bedrohung)) %>%
+  mutate(Bedrohungserfahrung = recode(
+    Bedrohungserfahrung, `Weiß nicht` = "Weiß nicht / keine Angabe")
+  ) %>%
+  mutate(Bedrohungserfahrung = replace_na(
+    Bedrohungserfahrung, "Weiß nicht / keine Angabe")
+  ) %>%
+
+  filter(!is.na(v_alter)) %>%
+  mutate(alter = 2022 - v_alter) %>%
+  mutate(Alterskohorte = as.character(trunc(alter / 10) * 10)) %>%
+  mutate(
+    Alterskohorte = recode(
+      Alterskohorte,
+      `10` = "10-19",
+      `20` = "20-29",
+      `30` = "30-39",
+      `40` = "40-49",
+      `50` = "50-59",
+      `60` = "60-69",
+      `70` = "70-79",
+      `80` = "80-89",
+      `90` = "90-99"
+    )
+  ) %>%
+  
+  select(Bedrohungserfahrung, Alterskohorte) %>%
+  mutate(across(everything(), as.vector)) %>%
+  crosstable(
+    by = Bedrohungserfahrung,
+    total = "row",
+    percent_digits = 0,
+    showNA = "no",
+  )
+
+threatened3 %>% as_flextable(keep_id = FALSE, compact = FALSE)
+```
+
+```{r create_sheet_threats3, echo = FALSE}
+addWorksheet(wb, sheetName = "Bedrohungen3")
+writeDataTable(wb, sheet = "Bedrohungen3", x = threatened3)
+```
+
+
+\newpage
+
+**Tabelle 5: Bedrohungserfahrung nach Bundesland**
+
+```{r, echo = FALSE}
+threatened4 <- kommrep_loc %>%
+  select(v_bedrohung, db_bundesland) %>%
+  mutate(Bundesland = db_bundesland) %>%
+  mutate(Bedrohungserfahrung = as_factor(v_bedrohung)) %>%
+  mutate(Bedrohungserfahrung = recode(Bedrohungserfahrung, `Weiß nicht` = "Weiß nicht / keine Angabe")) %>%
+  mutate(Bedrohungserfahrung = replace_na(Bedrohungserfahrung, "Weiß nicht / keine Angabe")) %>%
+  select(Bedrohungserfahrung, Bundesland) %>%
+  mutate(across(everything(), as.vector)) %>%
+  crosstable(by = Bedrohungserfahrung, total = "none", percent_digits = 0, showNA = "no")
+
+threatened4 %>% as_flextable(keep_id = FALSE, compact = TRUE)
+```
+
+```{r create_sheet_threats4, echo = FALSE}
+addWorksheet(wb, sheetName = "Bedrohungen4")
+writeDataTable(wb, sheet = "Bedrohungen4", x = threatened4)
+```
+
+
+\newpage
+
+**Tabelle 6: Bedrohungserfahrung nach Stadt**
+
+```{r threat_by_city, echo = FALSE}
+threatened5 <- kommrep_loc %>%
+  select(v_bedrohung, db_bundesland, db_stadtstaat, db_stadt) %>%
+  mutate(Bundesland = db_bundesland) %>%
+  mutate(Stadt = ifelse(db_stadtstaat, db_bundesland, db_stadt)) %>%
+  mutate(Bedrohungserfahrung = as_factor(v_bedrohung)) %>%
+  mutate(Bedrohungserfahrung = recode(Bedrohungserfahrung, `Weiß nicht` = "Weiß nicht / keine Angabe")) %>%
+  mutate(Bedrohungserfahrung = replace_na(Bedrohungserfahrung, "Weiß nicht / keine Angabe")) %>%
+  select(Bedrohungserfahrung, Stadt) %>%
+  mutate(across(everything(), as.vector)) %>%
+  crosstable(by = Bedrohungserfahrung, total = "none", percent_digits = 0, showNA = "no") %>%
+  mutate(threat_share = as.numeric(gsub("^\\d+\\s+\\((\\d+)%\\)$", "\\1", Ja))) %>%
+  arrange(desc(threat_share)) %>%
+  select(-threat_share) %>%
+  head(n = 10)
+
+threatened5 %>% as_flextable(keep_id = FALSE, compact = TRUE)
+```
+
+```{r create_sheet_threats5, echo = FALSE}
+addWorksheet(wb, sheetName = "Bedrohungen5")
+writeDataTable(wb, sheet = "Bedrohungen5", x = threatened5)
+```
+
+\newpage
+
+**Abbildung 1: Streuung der Bedrohungserfahrungen innerhalb der Bundesländer**
+
+```{r citystats, echo = FALSE}
+citystats <- kommrep_loc %>%
+  select(v_bedrohung, db_bundesland, db_stadtstaat, db_stadt) %>%
+  mutate(Bundesland = db_bundesland) %>%
+  mutate(Stadt = ifelse(db_stadtstaat, db_bundesland, db_stadt)) %>%
+  mutate(Bedrohungserfahrung = as_factor(v_bedrohung)) %>%
+  mutate(Bedrohungserfahrung = recode(Bedrohungserfahrung, `Weiß nicht` = "Weiß nicht / keine Angabe")) %>%
+  mutate(Bedrohungserfahrung = replace_na(Bedrohungserfahrung, "Weiß nicht / keine Angabe")) %>%
+  select(Bedrohungserfahrung, Stadt, db_bundesland) %>%
+  filter(!is.na(db_bundesland)) %>%
+  mutate(across(everything(), as.vector))
+
+citystats %>%
+  filter(Bedrohungserfahrung == "Ja") %>%
+  group_by(Stadt, db_bundesland) %>%
+  summarise(n = n(), .groups = "rowwise") %>%
+  left_join(
+    y = summarise(group_by(citystats, Stadt), total = n()),
+    by = "Stadt"
+  ) %>%
+  mutate(share = n / total) %>%
+  ungroup() %>%
+  select(db_bundesland, share) %>%
+  ggplot(aes(x = share, y = db_bundesland)) +
+    geom_point()
+```
+
+
+\newpage
+
+**Tabelle 7: Bedrohungserfahrung nach Partei**
+
+```{r threat_by_party, echo = FALSE, results = "asis", fig.width = 8}
+threatened6 <- kommrep_loc %>%
+  select(v_bedrohung, v_part1) %>%
+  mutate(Partei = as.character(as_factor(v_part1))) %>%
+  mutate(Bedrohungserfahrung = as_factor(v_bedrohung)) %>%
+  mutate(Bedrohungserfahrung = recode(Bedrohungserfahrung, `Weiß nicht` = "Weiß nicht / keine Angabe")) %>%
+  mutate(Bedrohungserfahrung = replace_na(Bedrohungserfahrung, "Weiß nicht / keine Angabe")) %>%
+  mutate(threat = as_factor(v_bedrohung)) %>%
+  select(Bedrohungserfahrung, Partei) %>%
+  mutate(across(everything(), as.vector)) %>%
+  crosstable(by = Bedrohungserfahrung, total = "none", percent_digits = 1, showNA = "no")
+
+threatened6 %>%
+  as_flextable(
+    keep_id = FALSE,
+    compact = TRUE,
+    fontsizes = list(body = 7, subheaders = 8, header = 8)
+  )
+```
+
+
+```{r create_sheet_threats6, echo = FALSE}
+addWorksheet(wb, sheetName = "Bedrohungen6")
+writeDataTable(wb, sheet = "Bedrohungen6", x = threatened6)
+```
+
+\newpage
+
+**Tabelle 8: Differenzierte Bedrohungsformen nach Geschlecht, Migrationshintergrund, Schichtzugehörigkeit**
+
+```{r, echo = FALSE, fig.width = 8}
+attacks <- kommrep_loc %>%
+  
+  select(starts_with("v_perzb_art"), v_geschlecht, v_mig_background, v_schicht, v_part1) %>%
+  select(-v_perzb_art7, -v_perzb_art6) %>%
+  
+  mutate(across(starts_with("v_perzb_art"), as_factor)) %>%
+  mutate(across(starts_with("v_perzb_art"), recode, `Trifft zu` = "Ja", `Trifft nicht zu` = "Nein", `Weiß nicht` = "Weiß nicht / k.A.")) %>%
+  mutate(across(starts_with("v_perzb_art"), as.character)) %>%
+  mutate(across(starts_with("v_perzb_art"), replace_na, "Weiß nicht / k.A.")) %>%
+  mutate(across(starts_with("v_perzb_art"), as.factor)) %>%
+  
+  mutate(Geschlecht = as_factor(v_geschlecht)) %>%
+  mutate(Geschlecht = recode(Geschlecht, `divers` = "nichtbinär", `weitere / andere` = "nichtbinär")) %>%
+  
+  mutate(Migrationshintergrund = ifelse(v_mig_background, "Ja", "Nein")) %>%
+
+  mutate(Schichtzugehörigkeit = as_factor(v_schicht)) %>%
+  mutate(
+    Schichtzugehörigkeit = recode(
+      Schichtzugehörigkeit,
+      `Der Oberschicht` = "hoch",
+      `Der oberen Mittelschicht` = "hoch",
+      `Der Mittelschicht` = "mittel",
+      `Der unteren Mittelschicht` = "niedrig",
+      `Der Arbeiterschicht` = "niedrig",
+      `Der Unterschicht` = "niedrig"
+    )) %>%
+  mutate(Schichtzugehörigkeit = na_if(Schichtzugehörigkeit, "Weiß nicht")) %>%
+  mutate(Schichtzugehörigkeit = droplevels(Schichtzugehörigkeit)) %>%
+  
+  mutate(Partei = as.character(as_factor(v_part1))) %>%
+  
+  select(-v_geschlecht, -v_mig_background, -v_schicht, v_part1) %>%
+  rename(
+    Briefe = v_perzb_art1,
+    SocMedia = v_perzb_art2,
+    Begegnung = v_perzb_art3,
+    Damage = v_perzb_art4,
+    Angriff = v_perzb_art5
+  ) %>%
+  mutate(across(everything(), as.vector))
+
+
+what <- c("Briefe", "SocMedia", "Begegnung", "Damage", "Angriff")
+ctbs <- lapply(
+  what,
+  function(var){
+    attacks %>%
+      select(all_of(var), Geschlecht, Schichtzugehörigkeit, Migrationshintergrund) %>%
+      crosstable(
+        by = all_of(var),
+        total = "both",
+        percent_digits = 1,
+        percent_pattern = list(
+          body = "{n}\n({p_row})",
+          total_row = "{n}\n({p_row})",
+          total_col = "{n}\n({p_row})",
+          total_all = "{n}\n({p_row})"
+        ),
+        showNA = "no"
+      ) 
+  }
+)
+names(ctbs) <- what
+
+tab <- bind_cols(
+  select(ctbs[[1]], -Ja, -Nein, -`Weiß nicht / k.A.`, -Total),
+  as_tibble(as.data.frame(lapply(ctbs, `[[`, "Ja"))),
+  select(ctbs[[1]], Total)
+)
+total_row <- filter(tab, variable == "Total")[1,]
+total_row[1,2:3] <- "Total"
+tab <- bind_rows(
+  filter(tab, variable != "Total"),
+  total_row
+)
+
+as_flextable(
+  tab,
+  fontsizes = list(body = 8, subheaders = 8, header = 8)
+)
+```
+
+
+```{r create_sheet_bedrohungsformen, echo = FALSE}
+addWorksheet(wb, sheetName = "Bedrohungsformen")
+writeDataTable(wb, sheet = "Bedrohungsformen", x = tab)
+```
+
+
+\newpage
+
+**Abbildung: Bedrohungsformen nach Geschlecht, Migrationshintergrund, Schichtzugehörigkeit**
+
+```{r, echo = FALSE}
+tables <- tab %>%
+  select(-.id) %>%
+  select(-Total) %>%
+  filter(variable != "Total") %>%
+  mutate(
+    across(
+      c(Briefe, SocMedia, Begegnung, Damage, Angriff),
+      ~ as.numeric(gsub("^(\\d+)\n\\((.*?)%\\)$", "\\2", .x, perl = TRUE)))
+  ) %>%
+  group_by(label) %>%
+  group_split()
+
+names(tables) <- sapply(sapply(tables, `[[`, 1), unique)
+tables[["Geschlecht"]] <- filter(tables[["Geschlecht"]], variable != "nichtbinär")
+tables <- lapply(
+  tables,
+  function(x){
+    m <- t(select(x, -label))
+    colnames(m) <- m[1,]
+    m <- m[-1,]
+    m2 <- t(apply(m, 1, as.numeric))
+    rownames(m2) <- rownames(m)
+    colnames(m2) <- colnames(m)
+    m2
+  }
+)
+
+colors <- RColorBrewer::brewer.pal(n = 3, "Set1")
+
+par(mfrow = c(1,3), mar = c(6,5,3,1))
+
+for (n in 1L:length(tables)){
+  plot(
+    x = tables[[n]][,1],
+    ylim = c(0,55),
+    type = "l",
+    xaxt = "n",
+    col = colors[1],
+    lwd = 2,
+    main = names(tables)[[n]],
+    ylab = "prozentualer Anteil",
+    xlab = ""
+  )
+  axis(1, at = 1:5, labels = rownames(tables[[1]]), las = 2)
+  for (i in 2L:ncol(tables[[n]])){
+    lines(x = tables[[n]][,i], col = colors[i], lwd = 2)
+  }
+  legend(x = "topright", legend = colnames(tables[[n]]), fill = colors[1L:ncol(tables[[n]])])
+}
+```
+
+\newpage
+
+**Abbildung: Bedrohungsformen nach Geschlecht, Migrationshintergrund, Schichtzugehörigkeit**
+
+```{r echo = FALSE}
+par(mfrow = c(1,3), mar = c(6,5,3,1))
+
+for (n in 1L:length(tables)){
+  barplot(
+    t(tables[[n]]),
+    beside = TRUE,
+    las = 2,
+    main = names(tables)[n],
+    col = colors[1:ncol(tables[[n]])],
+    ylim = c(0, 60)
+  )
+  legend(
+    x = "topleft",
+    legend = colnames(tables[[n]]),
+    fill = colors[1L:ncol(tables[[n]])],
+    cex = 0.8
+  )
+}
+```
+
+
+\newpage
+
+**Tabelle 9: Differenzierte Bedrohungsformen nach Partei**
+
+```{r, echo = FALSE, fig.width = 8}
+what <- c("Briefe", "SocMedia", "Begegnung", "Damage", "Angriff")
+ctbs <- lapply(
+  what,
+  function(var){
+    attacks %>%
+      select(all_of(var), Partei) %>%
+      crosstable(
+        by = all_of(var),
+        total = "both",
+        percent_digits = 1,
+        percent_pattern = list(
+          body = "{n}\n({p_row})",
+          total_row = "{n}\n({p_row})",
+          total_col = "{n}\n({p_row})",
+          total_all = "{n}\n({p_row})"
+        ),
+        showNA = "no"
+      ) 
+  }
+)
+names(ctbs) <- what
+
+tab <- bind_cols(
+  select(ctbs[[1]], -Ja, -Nein, -`Weiß nicht / k.A.`, -Total),
+  as_tibble(as.data.frame(lapply(ctbs, `[[`, "Ja"))),
+  select(ctbs[[1]], Total)
+)
+total_row <- filter(tab, variable == "Total")[1,]
+total_row[1,2:3] <- "Total"
+tab <- bind_rows(
+  filter(tab, variable != "Total"),
+  total_row
+)
+
+as_flextable(
+  tab,
+  fontsizes = list(body = 8, subheaders = 8, header = 8)
+)
+```
+
+```{r create_sheet_bedrohungsformen_partei, echo = FALSE}
+addWorksheet(wb, sheetName = "Bedrohungsformen_Partei")
+writeDataTable(wb, sheet = "Bedrohungsformen_Partei", x = tab)
+```
+
+
+\newpage
+
+**Abbildung: Bedrohungsformen nach Partei (Liniendiagramm)**
+
+```{r, echo = FALSE}
+x <- tab %>%
+  select(-.id) %>%
+  select(-Total) %>%
+  filter(variable != "Total") %>%
+  mutate(
+    across(
+      c(Briefe, SocMedia, Begegnung, Damage, Angriff),
+      ~ as.numeric(gsub("^(\\d+)\n\\((.*?)%\\)$", "\\2", .x, perl = TRUE)))
+  ) %>%
+  select(-label) %>%
+  filter(variable != "Unabhängige Kandidatur, keine Partei/Wählerliste") %>%
+#  filter(variable != "Freie Wähler") %>%
+  filter(variable != "Piratenpartei")
+
+
+m <- t(x)
+colnames(m) <- m[1,]
+m <- m[-1,]
+m2 <- t(apply(m, 1, as.numeric))
+rownames(m2) <- rownames(m)
+colnames(m2) <- colnames(m)
+
+colors <- RColorBrewer::brewer.pal(n = 10, "Set3")
+
+par(mfrow = c(1,1), mar = c(6,5,3,1))
+
+
+plot(
+  x = m[,1],
+  ylim = c(0,100),
+  type = "l",
+  xaxt = "n",
+  col = colors[1],
+  lwd = 2,
+  main = names(m),
+  ylab = "prozentualer Anteil",
+  xlab = ""
+)
+axis(1, at = 1:5, labels = rownames(m), las = 2)
+for (i in 2L:ncol(m)){
+  lines(x = m[,i], col = colors[i], lwd = 2)
+}
+legend(x = "topright", legend = colnames(m), fill = colors[1L:ncol(m)], cex = 0.5)
+```
+
+\newpage
+
+**Abbildung: Bedrohungsformen nach Partei (Balkendiagramm)**
+
+```{r, echo = FALSE}
+barplot(
+  t(m2),
+  beside = TRUE,
+  las = 2,
+#  main = names(tables)[n],
+  col = colors[1:ncol(m2)],
+  ylim = c(0,100)
+)
+legend(x = "topright", legend = colnames(m), fill = colors[1L:ncol(m)], cex = 0.5)
+```
+
+
+\newpage
+
+**Tabelle 10: Rückzugsgedanken nach Geschlecht, Migrationshintergrund, Schichtzugehörigkeit**
+
+```{r, echo = FALSE}
+exit <- kommrep_loc %>%
+  
+  select(v_exit, v_geschlecht, v_mig_background, v_schicht) %>%
+  
+  mutate(Ausstieg = as_factor(v_exit)) %>%
+  mutate(Ausstieg = recode(Ausstieg, `Weiß nicht` = "Weiß nicht / keine Angabe")) %>%
+  mutate(Ausstieg = replace_na(Ausstieg, "Weiß nicht / keine Angabe")) %>%
+  
+  mutate(Geschlecht = as_factor(v_geschlecht)) %>%
+  mutate(Geschlecht = recode(Geschlecht, `divers` = "nichtbinär", `weitere / andere` = "nichtbinär")) %>%
+  
+  mutate(Migrationshintergrund = ifelse(v_mig_background, "Ja", "Nein")) %>%
+
+  mutate(Schichtzugehörigkeit = as_factor(v_schicht)) %>%
+  mutate(
+    Schichtzugehörigkeit = recode(
+      Schichtzugehörigkeit,
+      `Der Oberschicht` = "hoch",
+      `Der oberen Mittelschicht` = "hoch",
+      `Der Mittelschicht` = "mittel",
+      `Der unteren Mittelschicht` = "niedrig",
+      `Der Arbeiterschicht` = "niedrig",
+      `Der Unterschicht` = "niedrig"
+    )) %>%
+  mutate(Schichtzugehörigkeit = na_if(Schichtzugehörigkeit, "Weiß nicht")) %>%
+  mutate(Schichtzugehörigkeit = droplevels(Schichtzugehörigkeit)) %>%
+  
+  select(Ausstieg, Geschlecht, Migrationshintergrund, Schichtzugehörigkeit) %>%
+  mutate(across(everything(), as.vector)) %>%
+  crosstable(by = Ausstieg, total = "none", percent_digits = 1, showNA = "no")
+
+exit %>% as_flextable(keep_id = FALSE, compact = FALSE)
+```
+
+```{r create_sheet_rückzugsgedanke, echo = FALSE}
+addWorksheet(wb, sheetName = "Rückzugsgedanke")
+writeDataTable(wb, sheet = "Rückzugsgedanke", x = exit)
+```
+
+
+\newpage
+
+**Tabelle 11: Verhaltensänderung aus Sorge vor (weiteren) Beleidigungen, Bedrohungen oder tätlichen Angriffen**
+
+```{r threat_and_change, echo = FALSE}
+behavioral_change <- kommrep_loc %>%
+  select(v_bedrohung, v_sorge_umgang1) %>% # Verhaltensänderung? 1504 1=Ja!
+  filter(v_bedrohung != 98) %>%
+  mutate(Verhaltensänderung = ifelse(as.vector(v_sorge_umgang1) == 0L, "Ja", "Nein")) %>%
+  mutate(Bedrohungserfahrung = ifelse(as.vector(v_bedrohung) == 1L, "Ja", "Nein")) %>%
+  crosstable(
+    Bedrohungserfahrung, by = Verhaltensänderung,
+    percent_pattern = list(
+      body = "{p_row}\n({n})",
+      total_row = "{p_row}\n({n})",
+      total_col = "{p_row}\n({n})",
+      total_all = "{p_row}\n({n})"
+    ),
+    total = "both", percent_digits = 1)
+
+
+behavioral_change %>% as_flextable(keep_id = FALSE, compact = TRUE)
+```
+
+```{r create_sheet_verhaltensänderung, echo = FALSE}
+addWorksheet(wb, sheetName = "Verhaltensänderung")
+writeDataTable(wb, sheet = "Verhaltensänderung", x = behavioral_change)
+```
+
+
+\newpage
+
+**Tabelle 12: Formen der Verhaltensänderung**
+
+```{r, echo = FALSE}
+change_how <- kommrep_loc %>%
+  filter(v_sorge_umgang1 == 0) %>%
+  mutate(
+    behavior_Misstrauen = ifelse(v_sorge_umgang2 == 1L, TRUE, FALSE), # Steigerung von Misstrauen 
+    behavior_Offline = ifelse(v_sorge_umgang3 == 1L, TRUE, FALSE), # Verzicht auf soziale Medien
+    behavior_Schweigen = ifelse(v_sorge_umgang4 == 1L, TRUE, FALSE), #  Zurückhaltung bei Themen
+    behavior_Rückzug = ifelse(v_sorge_umgang5 == 1L, TRUE, FALSE), # Meidung von Orten und Veranstaltungen
+    behavior_Umzug = ifelse(v_sorge_umgang6 == 1L, TRUE, FALSE) # Wohnortwechsel
+  ) %>%
+  select(starts_with("behavior_")) %>%
+  pivot_longer(cols = starts_with("behavior")) %>%
+  mutate(name = gsub("^behavior_(.*?)$", "\\1", name)) %>%
+  crosstable(by = value, percent_digits = 1)
+
+change_how %>% as_flextable(keep_id = FALSE, compact = TRUE)
+```
+
+```{r create_sheet_verhaltensänderung2, echo = FALSE}
+addWorksheet(wb, sheetName = "Verhaltensänderung2")
+writeDataTable(wb, sheet = "Verhaltensänderung2", x = change_how)
+```
+
+
+\newpage
+
+**Tabelle 13: Verhaltensänderung nach Geschlecht, Migrationshintergrund, Schicht**
+
+```{r, echo = FALSE}
+change_who <- kommrep_loc %>%
+  
+  select(v_sorge_umgang1, v_geschlecht, v_mig_background, v_schicht) %>%
+  
+  mutate(Verhaltensänderung = ifelse(v_sorge_umgang1 == 0, "ja", "nein")) %>%
+
+  mutate(Geschlecht = as_factor(v_geschlecht)) %>%
+  mutate(Geschlecht = recode(Geschlecht, `divers` = "nichtbinär", `weitere / andere` = "nichtbinär")) %>%
+  
+  mutate(Migrationshintergrund = ifelse(v_mig_background, "Ja", "Nein")) %>%
+
+  mutate(Schichtzugehörigkeit = as_factor(v_schicht)) %>%
+  mutate(
+    Schichtzugehörigkeit = recode(
+      Schichtzugehörigkeit,
+      `Der Oberschicht` = "hoch",
+      `Der oberen Mittelschicht` = "hoch",
+      `Der Mittelschicht` = "mittel",
+      `Der unteren Mittelschicht` = "niedrig",
+      `Der Arbeiterschicht` = "niedrig",
+      `Der Unterschicht` = "niedrig"
+    )) %>%
+  mutate(Schichtzugehörigkeit = na_if(Schichtzugehörigkeit, "Weiß nicht")) %>%
+  mutate(Schichtzugehörigkeit = droplevels(Schichtzugehörigkeit)) %>%
+  
+  select(Verhaltensänderung, Geschlecht, Migrationshintergrund, Schichtzugehörigkeit) %>%
+  mutate(across(everything(), as.vector)) %>%
+  crosstable(by = Verhaltensänderung, total = "none", percent_digits = 1, showNA = "no")
+
+change_who %>% as_flextable(keep_id = FALSE, compact = FALSE)
+```
+
+```{r create_sheet_verhaltensänderung3, echo = FALSE}
+addWorksheet(wb, sheetName = "Verhaltensänderung3")
+writeDataTable(wb, sheet = "Verhaltensänderung3", x = change_who)
+```
+
+
+\newpage
+
+**Abbildung 2: Umgang mit Beleidigungen, Bedrohungen oder tätlichen Angriffen nach Geschlecht**
+
+```{r, echo = FALSE}
+gender_stats <- kommrep_loc %>%
+  select(v_geschlecht) %>%
+  mutate(Geschlecht = ifelse(as.vector(v_geschlecht) == 1L, "w", "m")) %>%
+  group_by(Geschlecht) %>%
+  summarise(total = n())
+
+kommrep_loc %>%
+  filter(v_bedrohung == 1) %>%
+  select(starts_with(c("v_ubergriff_umg", "v_bedrohung_umg")), v_geschlecht) %>%
+  select(-v_ubergriff_umg7, v_bedrohung_umg7) %>%
+  mutate(
+    Schweigen = ifelse((v_bedrohung_umg1 == 1) | (v_ubergriff_umg1 == 1), TRUE, FALSE),
+    Anzeige = ifelse((v_bedrohung_umg2 == 1) | (v_ubergriff_umg2 == 1), TRUE, FALSE),
+    Öffentlichkeit = ifelse((v_bedrohung_umg3 == 1) | (v_ubergriff_umg3 == 1), TRUE, FALSE),
+    Hilfsangebote = ifelse((v_bedrohung_umg4 == 1) | (v_ubergriff_umg4 == 1), TRUE, FALSE),
+    Austausch_Kollegen = ifelse((v_bedrohung_umg5 == 1) | (v_ubergriff_umg5 == 1), TRUE, FALSE),
+    Austausch_privat = ifelse((v_bedrohung_umg6 == 1) | (v_ubergriff_umg6 == 1), TRUE, FALSE),
+    Geschlecht = ifelse(as.vector(v_geschlecht) == 1L, "w", "m")
+  ) %>%
+  select(Schweigen, Anzeige, Öffentlichkeit, Hilfsangebote, Austausch_Kollegen, Austausch_privat, Geschlecht) %>%
+  pivot_longer(!Geschlecht) %>%
+  filter(value == TRUE) %>%
+  filter(!is.na(Geschlecht)) %>%
+  group_by(name, Geschlecht) %>%
+  summarise(n = n(), .groups = "rowwise") %>%
+  left_join(gender_stats, by = "Geschlecht") %>%
+  mutate(percent = round(n / total * 100, 1)) %>%
+  ggplot(aes(x = name, y = percent, fill = Geschlecht)) + 
+    geom_bar(stat = "identity", position = "dodge")
+```
+
+
+\newpage
+
+**Tabelle 13: Umgang mit Beleidigungen, Bedrohungen oder tätlichen Angriffen nach Geschlecht, Migrationshintergrund, Schichtzugehörigkeit**
+
+```{r, echo = FALSE, fig.width = 8}
+responses <- kommrep_loc %>%
+  filter(v_bedrohung == 1) %>%
+  select(starts_with(c("v_ubergriff_umg", "v_bedrohung_umg")), v_geschlecht, v_mig_background, v_schicht) %>%
+  select(-v_ubergriff_umg7, v_bedrohung_umg7) %>%
+  mutate(
+    Schweigen = ifelse((v_bedrohung_umg1 == 1) | (v_ubergriff_umg1 == 1), TRUE, FALSE),
+    Anzeige = ifelse((v_bedrohung_umg2 == 1) | (v_ubergriff_umg2 == 1), TRUE, FALSE),
+    Öffentlichkeit = ifelse((v_bedrohung_umg3 == 1) | (v_ubergriff_umg3 == 1), TRUE, FALSE),
+    Hilfsangebote = ifelse((v_bedrohung_umg4 == 1) | (v_ubergriff_umg4 == 1), TRUE, FALSE),
+    Kollegen = ifelse((v_bedrohung_umg5 == 1) | (v_ubergriff_umg5 == 1), TRUE, FALSE),
+    privat = ifelse((v_bedrohung_umg6 == 1) | (v_ubergriff_umg6 == 1), TRUE, FALSE),
+    Geschlecht = ifelse(as.vector(v_geschlecht) == 1L, "w", "m")
+  ) %>%
+  mutate(
+    Schweigen = ifelse(is.na(Schweigen), FALSE, Schweigen),
+    Anzeige = ifelse(is.na(Anzeige), FALSE, Anzeige),
+    Öffentlichkeit = ifelse(is.na(Öffentlichkeit), FALSE, Öffentlichkeit),
+    Hilfsangebote = ifelse(is.na(Hilfsangebote), FALSE, Hilfsangebote),
+    Kollegen = ifelse(is.na(Kollegen), FALSE, Kollegen),
+    privat = ifelse(is.na(privat), FALSE, privat)
+  ) %>%
+  
+  mutate(Geschlecht = as_factor(v_geschlecht)) %>%
+  mutate(Geschlecht = recode(Geschlecht, `divers` = "nichtbinär", `weitere / andere` = "nichtbinär")) %>%
+  
+  mutate(Migrationshintergrund = ifelse(v_mig_background, "Ja", "Nein")) %>%
+
+  mutate(Schichtzugehörigkeit = as_factor(v_schicht)) %>%
+  mutate(
+    Schichtzugehörigkeit = recode(
+      Schichtzugehörigkeit,
+      `Der Oberschicht` = "hoch",
+      `Der oberen Mittelschicht` = "hoch",
+      `Der Mittelschicht` = "mittel",
+      `Der unteren Mittelschicht` = "niedrig",
+      `Der Arbeiterschicht` = "niedrig",
+      `Der Unterschicht` = "niedrig"
+    )) %>%
+  mutate(Schichtzugehörigkeit = na_if(Schichtzugehörigkeit, "Weiß nicht")) %>%
+  mutate(Schichtzugehörigkeit = droplevels(Schichtzugehörigkeit)) %>%
+
+  select(
+    Schweigen, Anzeige, Öffentlichkeit, Hilfsangebote, Kollegen, privat,
+    Geschlecht, Migrationshintergrund, Schichtzugehörigkeit
+  ) %>%
+  mutate(across(everything(), as.vector))
+
+what <- c("Schweigen", "Anzeige", "Öffentlichkeit", "Hilfsangebote", "Kollegen", "privat")
+ctbs <- lapply(
+  what,
+  function(var){
+    responses %>%
+      select(all_of(var), Geschlecht, Schichtzugehörigkeit, Migrationshintergrund) %>%
+      crosstable(
+        by = all_of(var),
+        total = "row",
+        percent_digits = 1,
+        showNA = "no",
+        percent_pattern = list(
+          body = "{n}\n({p_row})",
+          total_row = "{n}\n({p_row})",
+          total_col = "{n}\n({p_row})",
+          total_all = "{n}\n({p_row})"
+        )
+      )
+  }
+)
+names(ctbs) <- what
+
+tab <- bind_cols(
+  select(ctbs[[1]], -`FALSE`, -`TRUE`, -Total),
+  as_tibble(as.data.frame(lapply(ctbs, `[[`, "TRUE"))),
+  select(ctbs[[1]], Total)
+)
+tab %>%
+  as_flextable(fontsizes = list(body = 7, subheaders = 8, header = 6)) %>%
+  autofit()
+```
+
+
+```{r create_sheet_verhaltensänderung4, echo = FALSE}
+addWorksheet(wb, sheetName = "Umgang")
+writeDataTable(wb, sheet = "Umgang", x = tab)
+```
+
+
+\newpage
+
+```{r, echo = FALSE}
+tables <- tab %>%
+  select(-.id) %>%
+  select(-Total) %>%
+  mutate(
+    across(
+      c(Schweigen, Anzeige, Öffentlichkeit, Hilfsangebote, Kollegen, privat),
+      ~ as.numeric(gsub("^(\\d+)\n\\((.*?)%\\)$", "\\2", .x, perl = TRUE)))
+  ) %>%
+  group_by(label) %>%
+  group_split()
+
+names(tables) <- sapply(sapply(tables, `[[`, 1), unique)
+tables[["Geschlecht"]] <- filter(tables[["Geschlecht"]], variable != "nichtbinär")
+tables <- lapply(
+  tables,
+  function(x){
+    m <- t(select(x, -label))
+    colnames(m) <- m[1,]
+    m <- m[-1,]
+    m2 <- t(apply(m, 1, as.numeric))
+    rownames(m2) <- rownames(m)
+    colnames(m2) <- colnames(m)
+    m2
+  }
+)
+
+colors <- RColorBrewer::brewer.pal(n = 3, "Set1")
+```
+
+**Abbildung: Umgang mit Beleidigungen (Liniendiagramme)**
+
+```{r, echo = FALSE}
+par(mfrow = c(1,3), mar = c(6,5,3,1))
+
+for (n in 1L:length(tables)){
+  plot(
+    x = tables[[n]][,1],
+    ylim = c(0,70),
+    type = "l",
+    xaxt = "n",
+    col = colors[1],
+    lwd = 2,
+    main = names(tables)[[n]],
+    ylab = "prozentualer Anteil",
+    xlab = ""
+  )
+  axis(1, at = 1:6, labels = rownames(tables[[1]]), las = 2)
+  for (i in 2L:ncol(tables[[n]])){
+    lines(x = tables[[n]][,i], col = colors[i], lwd = 2)
+  }
+  legend(x = "topleft", legend = colnames(tables[[n]]), fill = colors[1L:ncol(tables[[n]])])
+}
+```
+
+
+\newpage
+**Abbildung: Umgang mit Beleidigungen (Gruppierte Balkendiagramme)** 
+
+```{r, echo = FALSE}
+par(mfrow = c(1,3), mar = c(6,5,3,1))
+
+for (n in 1L:length(tables)){
+  barplot(
+    t(tables[[n]]),
+    beside = TRUE,
+    las = 2,
+    main = names(tables)[n],
+    col = colors[1:ncol(tables[[n]])],
+    ylim = c(0,70)
+  )
+  legend(
+    x = "topleft",
+    legend = colnames(tables[[n]]),
+    fill = colors[1L:ncol(tables[[n]])],
+    cex = 0.6
+  )
+}
+```
+
+\newpage
+
+**Abbildung 3: Umgang mit Beleidigungen, Bedrohungen oder tätlichen Angriffen (Gesamt)**
+
+```{r, echo = FALSE}
+behavioral_change <- lapply(
+  paste0("v_sorge_umgang", 2:6),
+  function(var){
+    x <- as.vector(kommrep_loc[[var]])
+    x <- ifelse(x == 98, NA, x)
+    x <- ifelse(x == 1, 1L, 0L)
+  }
+) %>%
+  as.data.frame() %>%
+  as.matrix() %>%
+  apply(1, sum, na.rm = TRUE)
+
+kommrep_loc %>%
+  mutate(behavioral_change_index = behavioral_change) %>%
+  filter(v_sorge_umgang1 == 0) %>%
+  mutate(
+    Schweigen = ifelse((v_bedrohung_umg1 == 1) | (v_ubergriff_umg1 == 1), TRUE, FALSE),
+    Anzeige = ifelse((v_bedrohung_umg2 == 1) | (v_ubergriff_umg2 == 1), TRUE, FALSE),
+    Öffentlichkeit = ifelse((v_bedrohung_umg3 == 1) | (v_ubergriff_umg3 == 1), TRUE, FALSE),
+    Hilfsangebote = ifelse((v_bedrohung_umg4 == 1) | (v_ubergriff_umg4 == 1), TRUE, FALSE),
+    Austausch_Kollegen = ifelse((v_bedrohung_umg5 == 1) | (v_ubergriff_umg5 == 1), TRUE, FALSE),
+    Austausch_privat = ifelse((v_bedrohung_umg6 == 1) | (v_ubergriff_umg6 == 1), TRUE, FALSE),
+    Female = ifelse(as.vector(v_geschlecht) == 1L, TRUE, FALSE)
+  ) %>%
+  mutate(
+    Schweigen = ifelse(is.na(Schweigen), FALSE, Schweigen),
+    Anzeige = ifelse(is.na(Anzeige), FALSE, Anzeige),
+    Öffentlichkeit = ifelse(is.na(Öffentlichkeit), FALSE, Öffentlichkeit),
+    Hilfsangebote = ifelse(is.na(Hilfsangebote), FALSE, Hilfsangebote),
+    Austausch_Kollegen = ifelse(is.na(Austausch_Kollegen), FALSE, Austausch_Kollegen),
+    Austausch_privat = ifelse(is.na(Austausch_privat), FALSE, Austausch_privat)
+  ) %>%
+  select(Schweigen, Anzeige, Öffentlichkeit, Hilfsangebote, Austausch_Kollegen, Austausch_privat, behavioral_change_index) %>%
+  pivot_longer(!behavioral_change_index) %>% 
+  group_by(name, value) %>%
+  summarise(mean = mean(behavioral_change_index), .groups = "rowwise") %>%
+  ggplot(aes(x = name, y = mean, fill = value)) +
+    geom_bar(stat = "identity", position = "dodge")
+```
+
+```{r save_workbook, echo = FALSE}
+openxlsx::saveWorkbook(wb = wb, file = wb_fname, overwrite = TRUE)
+```
+
