@@ -46,6 +46,93 @@ source("~/Lab/github/incivility/aux/kommrep_loc_lm.R")
 ```
 
 
+\newpage
+
+## Certainty to stay by sex, class, migration background
+
+```{r echo = FALSE}
+exit <- kommrep_loc_lm %>%
+  
+  mutate(class = as_factor(v_schicht)) %>%
+  mutate(
+    `subjective class` = recode(
+      class,
+      `Der Oberschicht` = "high",
+      `Der oberen Mittelschicht` = "high",
+      `Der Mittelschicht` = "medium",
+      `Der unteren Mittelschicht` = "low",
+      `Der Arbeiterschicht` = "low",
+      `Der Unterschicht` = "low"
+    )) %>%
+  mutate(`subjective class` = na_if(`subjective class`, "Weiß nicht")) %>%
+  mutate(`subjective class` = droplevels(`subjective class`)) %>%
+  mutate(`subjective class` = as.factor(`subjective class`)) %>% 
+  mutate(`subjective class` = fct_rev(`subjective class`)) %>% 
+
+  select(stay, female_diverse, racialized, `subjective class`) %>%
+  
+  mutate(stay = ifelse(stay, "yes", "no / don't know")) %>%
+  mutate(stay = as.factor(stay)) %>% 
+  mutate(stay = fct_rev(stay)) %>% 
+  
+  mutate(gender = ifelse(female_diverse, "female/diverse", "male")) %>% 
+  
+  mutate(`racialized` = ifelse(racialized, "yes", "no")) %>%
+  mutate(`racialized` = fct_rev(as.factor(racialized))) %>% 
+
+  
+  select(-female_diverse) %>%
+
+  crosstable(by = stay, total = "none", percent_digits = 1, showNA = "no")
+
+exit %>% as_flextable(keep_id = FALSE, compact = FALSE)
+```
+
+
+
+\newpage
+
+## Behavioral change by sex, class, migration backgorund
+
+```{r, echo = FALSE}
+change_who <- kommrep_loc %>%
+  
+  select(v_sorge_umgang1, v_geschlecht, v_mig_background, v_schicht) %>%
+  
+  mutate(`behavioral change` = ifelse(v_sorge_umgang1 == 0, "yes", "no")) %>%
+
+  mutate(sex = as_factor(v_geschlecht)) %>%
+  mutate(sex = recode(
+    sex,
+    `divers` = "nonbinary",
+    `weitere / other` = "nonbinary",
+    `männlich` = "male", `weiblich` = "female",
+    `weitere / andere` = "other"
+  )) %>%
+  
+  mutate(`migration background` = ifelse(v_mig_background, "yes", "no")) %>%
+
+  mutate(class = as_factor(v_schicht)) %>%
+  mutate(
+    class = recode(
+      class,
+      `Der Oberschicht` = "high",
+      `Der oberen Mittelschicht` = "high",
+      `Der Mittelschicht` = "medium",
+      `Der unteren Mittelschicht` = "low",
+      `Der Arbeiterschicht` = "low",
+      `Der Unterschicht` = "low"
+    )) %>%
+  mutate(class = na_if(class, "Weiß nicht")) %>%
+  mutate(class = droplevels(class)) %>%
+  
+  select(`behavioral change`, sex, `migration background`, class) %>%
+  mutate(across(everything(), as.vector)) %>%
+  crosstable(by = `behavioral change`, total = "none", percent_digits = 1, showNA = "no")
+
+change_who %>% as_flextable(keep_id = FALSE, compact = FALSE)
+```
+
 
 
 \newpage

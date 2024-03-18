@@ -140,6 +140,94 @@ lapply(
 ggsave("~/Lab/github/incivility/svg/threat_and_behavioral_change.svg", width = 24, height = 12, units = "cm")
 ```
 
+
+```{r threat_and_change3, echo = FALSE}
+threat_and_change <- kommrep_loc_lm %>%
+  select(threat_verbal, threat_physical, v_sorge_umgang4, v_exit, weight_ps) %>%
+  
+  mutate(`communicative threat` = ifelse(threat_verbal > 0, "yes", "no")) %>% 
+  mutate(`communicative threat` = ifelse(is.na(`communicative threat`), "no", `communicative threat`)) %>% 
+  
+  mutate(`physical threat` = ifelse(threat_physical > 0, "yes", "no")) %>% 
+  mutate(`physical threat` = ifelse(is.na(`physical threat`), "no", `physical threat`)) %>% 
+  
+  mutate(`considering exit` = ifelse(as.character(as_factor(v_exit)) == "Ja", "yes", "no")) %>%
+  mutate(`considering exit` = ifelse(is.na(`considering exit`), "na", `considering exit`)) %>%
+  
+  mutate(`avoid topics` = ifelse(v_sorge_umgang4 == 1L, "yes", "no")) %>%
+  mutate(`avoid topics` = ifelse(is.na(`avoid topics`), "na", `avoid topics`)) %>%
+  
+  select(
+    `communicative threat`, `physical threat`,
+    `avoid topics`, `considering exit`,
+    `weight_ps`
+  )
+
+
+bind_rows(
+  list(
+    threat_and_change %>%
+      select(`considering exit`, `communicative threat`, weight_ps) %>%
+      group_by(`considering exit`, `communicative threat`) %>%
+      summarise(n_weighed = sum(weight_ps)) %>%
+      mutate(behavior = "considering exit") %>%
+      mutate(threat = "communicative threat") %>%
+      ungroup() %>%
+      mutate(percent = round(n_weighed / sum(n_weighed) * 100, 1)) %>%
+      rename(`behavioral effect` = "considering exit") %>%
+      rename(`threat applicable` = "communicative threat") %>%
+      select(-n_weighed),
+    
+    threat_and_change %>%
+      select(`considering exit`, `physical threat`, weight_ps) %>%
+      group_by(`considering exit`, `physical threat`) %>%
+      summarise(n_weighed = sum(weight_ps)) %>%
+      mutate(behavior = "considering exit") %>%
+      mutate(threat = "physical threat") %>%
+      ungroup() %>%
+      mutate(percent = round(n_weighed / sum(n_weighed) * 100, 1)) %>%
+      rename(`behavioral effect` = "considering exit") %>%
+      rename(`threat applicable` = "physical threat") %>%
+      select(-n_weighed),
+    
+    threat_and_change %>%
+      select(`avoid topics`, `communicative threat`, weight_ps) %>%
+      group_by(`avoid topics`, `communicative threat`) %>%
+      summarise(n_weighed = sum(weight_ps)) %>%
+      mutate(behavior = "avoid topics") %>%
+      mutate(threat = "communicative threat") %>%
+      ungroup() %>%
+      mutate(percent = round(n_weighed / sum(n_weighed) * 100, 1)) %>%
+      rename(`behavioral effect` = "avoid topics") %>%
+      rename(`threat applicable` = "communicative threat") %>%
+      select(-n_weighed),
+    
+    threat_and_change %>%
+      select(`avoid topics`, `physical threat`, weight_ps) %>%
+      group_by(`avoid topics`, `physical threat`) %>%
+      summarise(n_weighed = sum(weight_ps)) %>%
+      mutate(behavior = "avoid topics") %>%
+      mutate(threat = "physical threat") %>%
+      ungroup() %>%
+      mutate(percent = round(n_weighed / sum(n_weighed) * 100, 1)) %>%
+      rename(`behavioral effect` = "avoid topics") %>%
+      rename(`threat applicable` = "physical threat") %>%
+      select(-n_weighed)
+  )
+) %>%
+  ggplot(aes(x = `threat applicable`, y = percent, fill = `behavioral effect`)) +
+    geom_bar(position = "stack", stat = "identity") +
+    facet_grid(behavior ~ threat) +
+    geom_text(
+      aes(label = paste(percent, "%")),
+      position = position_stack(0.5),
+      color = "white"
+    )
+
+ggsave("~/Lab/github/incivility/svg/threat_and_behavioral_change.svg", width = 24, height = 12, units = "cm")
+```
+
+
 \newpage
 
 **Tabelle 13: Behavioral Change by Group**
