@@ -49,32 +49,32 @@ source("~/Lab/github/incivility/aux/kommrep_loc_lm.R")
 ## Descriptive representation: Determinants of certainty to stay
 
 ```{r explaining_resilience, results = "asis", echo = FALSE}
-m1 <- glm(
+stay1 <- glm(
   stay ~ threat_verbal + threat_physical,
   kommrep_loc_lm,
   family = binomial("logit")
 )
 
-m2 <- glm(
+stay2 <- glm(
   stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE,
   kommrep_loc_lm,
   family = binomial("logit")
 )
 
 
-m3 <- glm(
+stay3 <- glm(
   stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class,
   kommrep_loc_lm,
   family = binomial("logit")
 )
 
-m4 <- glm(
+stay4 <- glm(
   stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized,
   kommrep_loc_lm,
   family = binomial("logit")
 )
 
-m5 <- glm(
+stay5 <- glm(
   stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized + soc + gen + div,
   kommrep_loc_lm,
   family = binomial("logit")
@@ -82,11 +82,11 @@ m5 <- glm(
 
 modelsummary::modelsummary(
   models = list(
-    A = m1,
-    B = m2,
-    C = m3,
-    D = m4,
-    E = m5
+    A = stay1,
+    B = stay2,
+    C = stay3,
+    D = stay4,
+    E = stay5
   ),
   estimate = "{estimate} ({std.error}){stars}",
   statistic = NULL,
@@ -116,46 +116,46 @@ modelsummary::modelsummary(
 
 \newpage
 
+## Coefficient plot: Certainty to stay
+
+```{r, echo = FALSE}
+plot_summs(stay1, stay2, stay3, stay4, stay5, colors = "Qual1")
+```
+
+
+\newpage
+
 ```{r, results = "asis"}
-m1 <- lm(
+behavior1 <- lm(
   behavioral_change ~ threat_verbal + threat_physical,
   kommrep_loc_lm
 )
 
-m2 <- lm(
+behavior2 <- lm(
   behavioral_change ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE,
   kommrep_loc_lm
 )
 
 
-m3 <- lm(
+behavior3 <- lm(
   behavioral_change ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class,
   kommrep_loc_lm
 )
 
-m4 <- lm(
+behavior4 <- lm(
   behavioral_change ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized,
   kommrep_loc_lm
 )
 
 
-m5 <- lm(
+behavior5 <- lm(
   behavioral_change ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized + soc + gen + div,
   kommrep_loc_lm
 )
 
 
-# stargazer::stargazer(
-#   m1, m2, m3, m4, m5,
-#   type = "latex",
-#   single.row = TRUE,
-#   header = FALSE,
-#   report = 'vc*',
-#   omit.stat = c("f", "ser")
-# )
-
 modelsummary::modelsummary(
-  models = list(A = m1, B = m2, C = m3, D = m4, E = m5),
+  models = list(A = behavior1, B = behavior2, C = behavior3, D = behavior4, E = behavior5),
   estimate = "{estimate} ({std.error}){stars}",
   statistic = NULL,
   output = "latex",
@@ -183,11 +183,3 @@ modelsummary::modelsummary(
 ```
 
 
-\newpage
-
-## Multivariate analysis (plot)
-
-
-```{r, echo = FALSE}
-plot_summs(m1, m2, m3, m4, m5, colors = "Qual1")
-```
