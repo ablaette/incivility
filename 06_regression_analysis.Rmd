@@ -11,6 +11,8 @@ editor_options:
   chunk_output_type: console
 ---
 
+\newpage
+
 ```{r load_libraries, message = FALSE, echo = FALSE}
 library(dplyr)
 library(data.table)
@@ -36,7 +38,7 @@ library(kommrep)
 stopifnot(packageVersion("kommrep") >= package_version("0.3.8"))
 ```
 
-```{r set_options, include = FALSE}
+```{r set_options, echo = FALSE, include = FALSE}
 set_flextable_defaults(pct_digits = "#")
 options("modelsummary_format_numeric_latex" = "plain")
 ```
@@ -46,37 +48,36 @@ source("~/Lab/github/incivility/aux/kommrep_loc_lm.R")
 ```
 
 
-## Descriptive representation: Determinants of certainty to stay
 
-```{r explaining_resilience, results = "asis", echo = FALSE}
+```{r descriptive_representation, results = "asis", echo = FALSE}
 stay1 <- glm(
   stay ~ threat_verbal + threat_physical,
-  kommrep_loc_lm,
+  data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
 stay2 <- glm(
   stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE,
-  kommrep_loc_lm,
+  data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
 
 stay3 <- glm(
   stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class,
-  kommrep_loc_lm,
+  data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
 stay4 <- glm(
   stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized,
-  kommrep_loc_lm,
+  data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
 stay5 <- glm(
   stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized + soc + gen + div,
-  kommrep_loc_lm,
+  data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
@@ -108,8 +109,8 @@ modelsummary::modelsummary(
     "(Intercept)" = "(Intercept)"
   ),
   stars = c('*' = .05, '**' = .01, '***' = .001),
-  title = ""
-  #gof_omit = "BIC|AIC|RMSE|Log.Lik|F"
+  title = "Descriptive representation: Determinants of certainty to stay"
+  # , gof_omit = "BIC|AIC|RMSE|Log.Lik|F"
 )
 ```
 
@@ -125,32 +126,37 @@ plot_summs(stay1, stay2, stay3, stay4, stay5, colors = "Qual1")
 
 \newpage
 
-```{r, results = "asis"}
-behavior1 <- lm(
-  behavioral_change ~ threat_verbal + threat_physical,
-  kommrep_loc_lm
+```{r, results = "asis", echo = FALSE}
+behavior1 <- glm(
+  muted2 ~ threat_verbal + threat_physical,
+  data = kommrep_loc_lm,
+  family = binomial("logit")
 )
 
-behavior2 <- lm(
-  behavioral_change ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE,
-  kommrep_loc_lm
-)
-
-
-behavior3 <- lm(
-  behavioral_change ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class,
-  kommrep_loc_lm
-)
-
-behavior4 <- lm(
-  behavioral_change ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized,
-  kommrep_loc_lm
+behavior2 <- glm(
+  muted2 ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE,
+  data = kommrep_loc_lm,
+  family = binomial("logit")
 )
 
 
-behavior5 <- lm(
-  behavioral_change ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized + soc + gen + div,
-  kommrep_loc_lm
+behavior3 <- glm(
+  muted2 ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class,
+  data = kommrep_loc_lm,
+  family = binomial("logit")
+)
+
+behavior4 <- glm(
+  muted2 ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized,
+  data = kommrep_loc_lm,
+  family = binomial("logit")
+)
+
+
+behavior5 <- glm(
+  muted2 ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized + soc + gen + div,
+  data = kommrep_loc_lm,
+  family = binomial("logit")
 )
 
 
@@ -162,24 +168,32 @@ modelsummary::modelsummary(
   coef_map = c(
     "threat_verbal" = "Communicative threat",
     "threat_physical" = "Physical threat",
+    "racializedTRUE" = "Racialized group (Ref. no)",
     "female_diverseTRUE" = "Female or diverse (Ref. no)",
     "class" = "Class",
-    "racializedTRUE" = "Racialized group (Ref. no)",
-    "socTRUE" = "Primary Topic: Class",
-    "genTRUE" = "Primary Topic: Gender",
     "divTRUE" = "Primary Topic: Migration",
-    "age" = "Age",
+    "genTRUE" = "Primary Topic: Gender",
+    "socTRUE" = "Primary Topic: Class",
     "AfDTRUE" = "AfD (Ref. other)",
     "SPDTRUE" = "SPD",
     "GRUENETRUE" = "B'90/Grüne",
     "LINKETRUE" = "LINKE",
+    "age" = "Age",
     "(Intercept)" = "(Intercept)"
   ),
   stars = c('*' = .05, '**' = .01, '***' = .001),
-  title = "",
-  gof_omit = "BIC|AIC|RMSE|Log.Lik|F"
+  title = "Regression results: Muted substantial representation"
+#  , gof_omit = "BIC|AIC|RMSE|Log.Lik|F"
 )
+```
 
+
+\newpage
+
+## Coefficient plot: Muted substantial representation
+
+```{r, echo = FALSE, }
+plot_summs(behavior1, behavior2, behavior3, behavior4, behavior5, colors = "Qual1")
 ```
 
 

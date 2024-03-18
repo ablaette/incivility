@@ -1,5 +1,15 @@
+# 1 = Ich habe mein Verhalten nicht geändert
+# 2 = Ich bin gegenüber meiner Umgebung misstrauischer / vorsichtiger.
+# 3 = Ich verzichte (weitgehend) auf die Nutzung sozialer Medien
+# 4 = Ich äußere mich zu be- stimmten Themen seltener als früher
+# 5 = Ich meide bestimmte Orte oder Veranstaltungen
+# 6 = Ich habe meinen Wohnort geändert
+# 7 = Anders, und zwar
+#
+# Enge Definition von substantieller Repräsentation: Nur 4
+# Wenn weit: auch 3 und 6 - Einschränkungen von Interaktionen mit Bürger*innen
 behavioral_change_index <- lapply(
-  paste0("v_sorge_umgang", 2:6),
+  paste0("v_sorge_umgang", 3:5),
   function(var){
     x <- as.vector(kommrep_loc[[var]])
     x <- ifelse(x == 98, NA, x)
@@ -94,10 +104,10 @@ kommrep_loc_lm <- kommrep_loc %>%
   mutate(exit = ifelse(exit == "Weiß nicht", NA, exit)) %>%
   mutate(exit = !as.logical(as.integer(exit) - 1)) %>% 
   
-  mutate(behavioral_change = behavioral_change_index / 5) %>%
-  mutate(behavioral_change = ifelse(
-    as.vector(v_sorge_umgang1) == 0L, TRUE, FALSE)
-  ) %>%
+  # Measurements for substantial representation
+  mutate(muted1 = ifelse(v_sorge_umgang4 == 1L, TRUE, FALSE)) %>%
+  mutate(muted2 = ifelse(is.na(muted1), FALSE, muted1)) %>%
+  mutate(behavioral_change = ifelse(behavioral_change_index > 0L, TRUE, FALSE)) %>%
   
   mutate(female_diverse = as_factor(v_geschlecht)) %>% 
   mutate(female_diverse = recode(
