@@ -72,7 +72,7 @@ behavioral_change %>% as_flextable(keep_id = FALSE, compact = TRUE)
 
 ## Expected and experienced threats and behavioral change
 
-```{r threat_and_change2, echo = FALSE}
+```{r threat_and_change1, echo = FALSE}
 behavioral_change <- kommrep_loc_lm %>%
   select(threat_experience, threat_verbal, threat_physical, behavioral_change) %>% # Verhaltensänderung? 1504 1=Ja!
   
@@ -263,4 +263,64 @@ change_who <- kommrep_loc %>%
   crosstable(by = `behavioral change`, total = "none", percent_digits = 1, showNA = "no")
 
 change_who %>% as_flextable(keep_id = FALSE, compact = FALSE)
+```
+
+\newpage
+
+```{r}
+depvars <- c(
+  "stay", # certainty to stay = descriptive representation
+  "muted2" # substantive representation
+)
+
+ivars <- c(
+  threat_verbal = "Communicative threat",
+  threat_physical = "Physical threat", 
+  racialized = "Racialised group",
+  female_diverse = "Female or diverse",
+  class = "Class",
+  div = "Primary Topic: Migration", 
+  gen = "Primary Topic: Gender",
+  soc = "Primary Topic: Class"
+)
+
+bind_rows(
+  lapply(
+    names(ivars),
+    function(ivar){
+      lapply(
+        depvars,
+        function(depvar){
+          y <- cor.test(
+            x = as.numeric(kommrep_loc_lm[[ivar]]),
+            y = as.numeric(kommrep_loc_lm[[depvar]]),
+            method = "spearman",
+            alternative = "two.sided"
+          )
+          tibble(
+            ivar = ivar,
+            depvar = depvar,
+            rho = y$estimate,
+            p.value = y$p.value
+          )
+        }
+      )
+    }
+  )
+) %>%
+  mutate(stars = ifelse(p.value < .05, "*", "")) %>%
+  mutate(stars = ifelse(p.value < .01, "**", stars)) %>%
+  mutate(stars = ifelse(p.value < .001, "***", stars)) %>%
+  mutate(combined = paste0(round(rho, 2), stars)) %>%
+  select(`ivar`, depvar, combined) %>%
+  pivot_wider(names_from = "depvar", values_from = combined) %>%
+  mutate(ivar = ivars[ivar]) %>%
+  rename(
+    `certainty to stay` = "stay",
+    `avoid topics` = "muted2",
+    ` ` = "ivar"
+  ) %>%
+  as_flextable(show_coltype = FALSE) %>%
+  add_footer_lines("* p < 0.5, ** p > .01, *** p > .001")
+  
 ```

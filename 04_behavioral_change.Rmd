@@ -287,3 +287,5 @@ ggarrange(RACE, GENDER, CLASS, common.legend = TRUE, nrow = 1)
 
 ggsave("~/Lab/github/incivility/svg/avoiding_topics_by_group.svg", width = 24, height = 12, units = "cm")
 ```
+
+
