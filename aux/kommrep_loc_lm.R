@@ -22,7 +22,9 @@ behavioral_change_index <- lapply(
 
 
 threat_comm_index <- lapply(
-  paste0("v_perzb_art", 1:2),
+  # v_perzb_art1 = Art der der Bedrohung: Anrufe, E-Mails, Briefe oder Faxe
+  # v_perzb_art2 = Art der der Bedrohung: sozialen Netzwerke
+  paste0("v_perzb_art", 1:2), 
   function(var){
     x <- as.vector(kommrep_loc[[var]])
     x <- ifelse(x == 98, NA, x)
