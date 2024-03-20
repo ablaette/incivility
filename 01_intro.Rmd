@@ -106,7 +106,7 @@ kommrep_loc %>%
   mutate(name = gsub("^behavior_(.*?)$", "\\1", name)) %>%
 #  mutate(value = ifelse(is.na(value), FALSE, value)) %>%
   group_by(name, value) %>%
-  summarise(n_weighed = sum(weight_ps)) %>%
+  summarise(n_weighed = sum(weight_ps), .groups = "rowwise") %>%
   pivot_wider(names_from = value, values_from = n_weighed) %>%
   mutate(true_percent = round(`TRUE` / (`TRUE` + `FALSE` + `NA`) * 100, 1)) %>%
   mutate(false_percent = round(`FALSE` / (`TRUE` + `FALSE` + `NA`) * 100, 1)) %>%
@@ -205,7 +205,7 @@ kommrep_loc_lm %>%
   as_flextable(show_coltype = FALSE)
 ```
 
-
+\newpage
 
 ### Figure 2: Threat experience and implications for representation
 
@@ -237,7 +237,7 @@ bind_rows(
     threat_and_change %>%
       select(`considering exit`, `communicative threat`, weight_ps) %>%
       group_by(`considering exit`, `communicative threat`) %>%
-      summarise(n_weighed = sum(weight_ps)) %>%
+      summarise(n_weighed = sum(weight_ps), .groups = "rowwise") %>%
       mutate(behavior = "considering exit") %>%
       mutate(threat = "communicative threat") %>%
       ungroup() %>%
@@ -249,7 +249,7 @@ bind_rows(
     threat_and_change %>%
       select(`considering exit`, `physical threat`, weight_ps) %>%
       group_by(`considering exit`, `physical threat`) %>%
-      summarise(n_weighed = sum(weight_ps)) %>%
+      summarise(n_weighed = sum(weight_ps), .groups = "rowwise") %>%
       mutate(behavior = "considering exit") %>%
       mutate(threat = "physical threat") %>%
       ungroup() %>%
@@ -261,7 +261,7 @@ bind_rows(
     threat_and_change %>%
       select(`avoid topics`, `communicative threat`, weight_ps) %>%
       group_by(`avoid topics`, `communicative threat`) %>%
-      summarise(n_weighed = sum(weight_ps)) %>%
+      summarise(n_weighed = sum(weight_ps), .groups = "rowwise") %>%
       mutate(behavior = "avoid topics") %>%
       mutate(threat = "communicative threat") %>%
       ungroup() %>%
@@ -273,7 +273,7 @@ bind_rows(
     threat_and_change %>%
       select(`avoid topics`, `physical threat`, weight_ps) %>%
       group_by(`avoid topics`, `physical threat`) %>%
-      summarise(n_weighed = sum(weight_ps)) %>%
+      summarise(n_weighed = sum(weight_ps), .groups = "rowwise") %>%
       mutate(behavior = "avoid topics") %>%
       mutate(threat = "physical threat") %>%
       ungroup() %>%
@@ -296,6 +296,8 @@ ggsave("~/Lab/github/incivility/svg/threat_and_behavioral_change.svg", width = 2
 ```
 
 
+\newpage
+
 ### Figure 3: Certain descriptive characteristics and consider exit 
 
 ```{r, echo = FALSE}
@@ -306,15 +308,15 @@ GENDER <- kommrep_loc %>%
   mutate(gender = recode(
     gender,
     `männlich` = "male",
-    `weiblich` = "female/nonbinary",
-    `divers` = "female/nonbinary",
-    `weitere / andere` = "female/nonbinary")
+    `weiblich` = "female/diverse",
+    `divers` = "female/diverse",
+    `weitere / andere` = "female/diverse")
   ) %>%
-  mutate(gender = factor(gender, levels = c("male", "female/nonbinary"))) %>%
+  mutate(gender = factor(gender, levels = c("male", "female/diverse"))) %>%
   select(gender, `exit`) %>%
   group_by(gender, `exit`) %>%
   filter(!is.na(gender)) %>%
-  summarise(N = n()) %>%
+  summarise(N = n(), .groups = "rowwise") %>%
   group_by(gender) %>%
   group_split() %>%
   lapply(function(x) mutate(x, share = x$N / sum(x$N))) %>%
@@ -335,7 +337,7 @@ RACE <- kommrep_loc_lm %>%
   mutate(`racialized` = ifelse(racialized, "yes", "no")) %>%
   filter(!is.na(`racialized`)) %>%
   group_by(`racialized`, `exit`) %>%
-  summarise(N = n()) %>%
+  summarise(N = n(), .groups = "rowwise") %>%
   group_by(`racialized`) %>%
   group_split() %>%
   lapply(function(x) mutate(x, share = x$N / sum(x$N))) %>%
@@ -366,7 +368,7 @@ CLASS <- kommrep_loc %>%
   mutate(`class` = droplevels(`class`)) %>%
   select(`exit`, `class`) %>%
   group_by(`class`, `exit`) %>%
-  summarise(N = n()) %>%
+  summarise(N = n(), .groups = "rowwise") %>%
   group_by(`class`) %>%
   group_split() %>%
   lapply(function(x) mutate(x, share = x$N / sum(x$N))) %>%
@@ -386,6 +388,9 @@ ggarrange(RACE, GENDER, CLASS, common.legend = TRUE, nrow = 1)
 ggsave("~/Lab/github/incivility/svg/considering_exit_by_group.svg", width = 24, height = 12, units = "cm")
 ```
 
+
+\newpage
+
 ### Figure 4: Certain descriptive characteristics and consider exit
 
 ```{r, echo = FALSE}
@@ -396,15 +401,15 @@ GENDER <- kommrep_loc %>%
   mutate(gender = recode(
     gender,
     `männlich` = "male",
-    `weiblich` = "female/nonbinary",
-    `divers` = "female/nonbinary",
-    `weitere / andere` = "female/nonbinary")
+    `weiblich` = "female/diverse",
+    `divers` = "female/diverse",
+    `weitere / andere` = "female/diverse")
   ) %>%
-  mutate(gender = factor(gender, levels = c("male", "female/nonbinary"))) %>%
+  mutate(gender = factor(gender, levels = c("male", "female/diverse"))) %>%
   select(gender, `avoid topics`) %>%
   group_by(gender, `avoid topics`) %>%
   filter(!is.na(gender)) %>%
-  summarise(N = n()) %>%
+  summarise(N = n(), .groups = "rowwise") %>%
   group_by(gender) %>%
   group_split() %>%
   lapply(function(x) mutate(x, share = x$N / sum(x$N))) %>%
@@ -425,7 +430,7 @@ RACE <- kommrep_loc_lm %>%
   mutate(`racialized` = ifelse(racialized, "yes", "no")) %>%
   filter(!is.na(`racialized`)) %>%
   group_by(`racialized`, `avoid topics`) %>%
-  summarise(N = n()) %>%
+  summarise(N = n(), .groups = "rowwise") %>%
   group_by(`racialized`) %>%
   group_split() %>%
   lapply(function(x) mutate(x, share = x$N / sum(x$N))) %>%
@@ -447,16 +452,16 @@ CLASS <- kommrep_loc %>%
       `Der Oberschicht` = "upper",
       `Der oberen Mittelschicht` = "upper",
       `Der Mittelschicht` = "middle",
-      `Der unteren Mittelschicht` = "low",
-      `Der Arbeiterschicht` = "low",
-      `Der Unterschicht` = "low"
+      `Der unteren Mittelschicht` = "lower",
+      `Der Arbeiterschicht` = "lower",
+      `Der Unterschicht` = "lower"
     )) %>%
   mutate(`class` = na_if(`class`, "Weiß nicht")) %>%
   filter(!is.na(class)) %>%
   mutate(`class` = droplevels(`class`)) %>%
   select(`avoid topics`, `class`) %>%
   group_by(`class`, `avoid topics`) %>%
-  summarise(N = n()) %>%
+  summarise(N = n(), .groups = "rowwise") %>%
   group_by(`class`) %>%
   group_split() %>%
   lapply(function(x) mutate(x, share = x$N / sum(x$N))) %>%
@@ -476,10 +481,11 @@ ggarrange(RACE, GENDER, CLASS, common.legend = TRUE, nrow = 1)
 ggsave("~/Lab/github/incivility/svg/avoiding_topics_by_group.svg", width = 24, height = 12, units = "cm")
 ```
 
+\newpage
 
 ## Table 1: Bivariate Correlations
 
-```{r}
+```{r bivariate_correlations, echo = FALSE, warning = FALSE}
 depvars <- c(
   "stay", # certainty to stay = descriptive representation
   "muted2" # substantive representation
@@ -536,36 +542,24 @@ bind_rows(
   add_footer_lines("* p < 0.5, ** p > .01, *** p > .001")
 ```
 
+\newpage
 
 ### Table 2: Regression for Implications to descriptive Representation (Considering exit) 
 
 ```{r descriptive_representation, results = "asis", echo = FALSE}
 stay1 <- glm(
-  stay ~ threat_verbal + threat_physical,
-  data = kommrep_loc_lm,
-  family = binomial("logit")
-)
-
-stay2 <- glm(
   stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
-
-stay3 <- glm(
-  stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class,
-  data = kommrep_loc_lm,
-  family = binomial("logit")
-)
-
-stay4 <- glm(
+stay2 <- glm(
   stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
-stay5 <- glm(
+stay3 <- glm(
   stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized + soc + gen + div,
   data = kommrep_loc_lm,
   family = binomial("logit")
@@ -575,9 +569,7 @@ modelsummary::modelsummary(
   models = list(
     A = stay1,
     B = stay2,
-    C = stay3,
-    D = stay4,
-    E = stay5
+    C = stay3
   ),
   estimate = "{estimate} ({std.error}){stars}",
   statistic = NULL,
@@ -604,45 +596,35 @@ modelsummary::modelsummary(
 )
 ```
 
+\newpage
 
 ### Table 3: Regression for Implications to substantive Representation (Avoid topics) 
 
 ```{r, results = "asis", echo = FALSE}
 behavior1 <- glm(
-  muted2 ~ threat_verbal + threat_physical,
-  data = kommrep_loc_lm,
-  family = binomial("logit")
-)
-
-behavior2 <- glm(
   muted2 ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
-
-behavior3 <- glm(
-  muted2 ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class,
-  data = kommrep_loc_lm,
-  family = binomial("logit")
-)
-
-behavior4 <- glm(
+behavior2 <- glm(
   muted2 ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
-
-behavior5 <- glm(
+behavior3 <- glm(
   muted2 ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized + soc + gen + div,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
-
 modelsummary::modelsummary(
-  models = list(A = behavior1, B = behavior2, C = behavior3, D = behavior4, E = behavior5),
+  models = list(
+    A = behavior1,
+    B = behavior2,
+    C = behavior3
+  ),
   estimate = "{estimate} ({std.error}){stars}",
   statistic = NULL,
   output = "latex",
@@ -663,7 +645,7 @@ modelsummary::modelsummary(
     "(Intercept)" = "(Intercept)"
   ),
   stars = c('*' = .05, '**' = .01, '***' = .001),
-  title = "Regression results: Muted substantial representation"
+  title = "Substantive representation: Avoid topics"
 #  , gof_omit = "BIC|AIC|RMSE|Log.Lik|F"
 )
 ```
