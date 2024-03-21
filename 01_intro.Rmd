@@ -583,7 +583,8 @@ bind_rows(
           y <- cor.test(
             x = as.numeric(kommrep_loc_lm[[ivar]]),
             y = as.numeric(kommrep_loc_lm[[depvar]]),
-            method = "spearman",
+            method = "pearson",
+            # method = "spearman",
             exact = FALSE,
             alternative = "two.sided"
           )
