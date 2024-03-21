@@ -153,7 +153,7 @@ kommrep_loc_lm %>%
   select(
     threat_verbal, threat_physical,
     female_diverse,
-#    class,
+    class,
     racialized,
     soc, gen, div,
     weight_ps
@@ -161,9 +161,12 @@ kommrep_loc_lm %>%
   mutate(threat_verbal_bin = ifelse(threat_verbal > 0, TRUE, FALSE)) %>%
   mutate(threat_physical_bin = ifelse(threat_physical > 0, TRUE, FALSE)) %>%
   select(-threat_verbal, -threat_physical) %>%
+  
+  mutate(class_lower = ifelse(class == "lower", TRUE, FALSE)) %>%
+  
   # select(-weight_ps) %>%
   mutate(across(everything(), as.vector)) %>%
-  pivot_longer(cols = c(threat_verbal_bin, threat_physical_bin, female_diverse, racialized, soc, gen, div)) %>%
+  pivot_longer(cols = c(threat_verbal_bin, threat_physical_bin, racialized, female_diverse, class_lower, div, gen, soc)) %>%
   group_by(name, value) %>%
   summarise(n = n(), n_weighed = sum(weight_ps), .groups = "rowwise") %>%
   select(-n) %>%
@@ -185,7 +188,7 @@ kommrep_loc_lm %>%
     `Physical threat` = "threat_physical_bin",
     `Racialized group` = "racialized",
     `Female or diverse` = "female_diverse",
-    # `Class` = "class",
+    `Class lower` = "class_lower",
     `Primary Topic: Migration` = "div",
     `Primary Topic: Gender` = "gen",
     `Primary Topic: Class` = "soc"
@@ -195,14 +198,21 @@ kommrep_loc_lm %>%
       variable,
       levels = c(
         "Communicative threat", "Physical threat",
-        "Racialized group", "Female or diverse",
+        "Racialized group", "Female or diverse", "Class lower",
         "Primary Topic: Migration", "Primary Topic: Gender", "Primary Topic: Class"
       )
     )
   ) %>%
+  mutate(
+    true = paste0(true, "%"),
+    missing = paste0(missing, "%"),
+    false = paste0(false, "%")
+  ) %>%
+  mutate(missing = ifelse(missing == "0%", "---", missing)) %>%
   arrange(variable) %>%
   relocate(variable) %>% 
-  as_flextable(show_coltype = FALSE)
+  as_flextable(show_coltype = FALSE) %>%
+  add_footer_lines("* Percent/shares calculated using case weights")
 ```
 
 \newpage
@@ -420,21 +430,9 @@ RACE <- kommrep_loc_lm %>%
     geom_bar(stat = "identity", position = "stack") +
     geom_text(aes(label = paste(percent, "%")), position = position_stack(0.5), color = "white") 
 
-CLASS <- kommrep_loc %>%
-  select(v_exit, v_schicht) %>%
+CLASS <- kommrep_loc_lm %>%
+  select(v_exit, class) %>%
   mutate(exit = ifelse(as.character(as_factor(v_exit)) == "Ja", TRUE, FALSE)) %>%
-  mutate(`class` = as_factor(v_schicht)) %>%
-  mutate(
-    `class` = recode(
-      `class`,
-      `Der Oberschicht` = "upper",
-      `Der oberen Mittelschicht` = "upper",
-      `Der Mittelschicht` = "middle",
-      `Der unteren Mittelschicht` = "low",
-      `Der Arbeiterschicht` = "low",
-      `Der Unterschicht` = "low"
-    )) %>%
-  mutate(`class` = na_if(`class`, "Weiß nicht")) %>%
   filter(!is.na(class)) %>%
   mutate(`class` = droplevels(`class`)) %>%
   select(`exit`, `class`) %>%
@@ -567,7 +565,7 @@ ivars <- c(
   threat_physical = "Physical threat", 
   racialized = "Racialised group",
   female_diverse = "Female or diverse",
-  class = "Class",
+  class_normalized = "Class",
   div = "Primary Topic: Migration", 
   gen = "Primary Topic: Gender",
   soc = "Primary Topic: Class"
@@ -640,13 +638,13 @@ stay1 <- glm(
 )
 
 stay2 <- glm(
-  stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized,
+  stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class_normalized + racialized,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
 stay3 <- glm(
-  stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized + soc + gen + div,
+  stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class_normalized + racialized + soc + gen + div,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
@@ -665,7 +663,7 @@ modelsummary::modelsummary(
     "threat_physical" = "Physical threat",
     "racializedTRUE" = "Racialized group (Ref. no)",
     "female_diverseTRUE" = "Female or diverse (Ref. no)",
-    "class" = "Class",
+    "class_normalized" = "Class",
     "divTRUE" = "Primary Topic: Migration",
     "genTRUE" = "Primary Topic: Gender",
     "socTRUE" = "Primary Topic: Class",
@@ -694,13 +692,13 @@ behavior1 <- glm(
 )
 
 behavior2 <- glm(
-  muted2 ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized,
+  muted2 ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class_normalized + racialized,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
 behavior3 <- glm(
-  muted2 ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized + soc + gen + div,
+  muted2 ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class_normalized + racialized + soc + gen + div,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
@@ -719,7 +717,7 @@ modelsummary::modelsummary(
     "threat_physical" = "Physical threat",
     "racializedTRUE" = "Racialized group (Ref. no)",
     "female_diverseTRUE" = "Female or diverse (Ref. no)",
-    "class" = "Class",
+    "class_normalized" = "Class",
     "divTRUE" = "Primary Topic: Migration",
     "genTRUE" = "Primary Topic: Gender",
     "socTRUE" = "Primary Topic: Class",

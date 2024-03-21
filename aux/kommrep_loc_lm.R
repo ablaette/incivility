@@ -123,7 +123,23 @@ kommrep_loc_lm <- kommrep_loc %>%
   )) %>%
   mutate(female_diverse = as.logical(female_diverse)) %>%
   
-  mutate(class = ifelse(as.vector(v_schicht) != 98, v_schicht - 1L / 6L, NA)) %>%
+  mutate(class_normalized = ifelse(as.vector(v_schicht) != 98, v_schicht - 1L / 6L, NA)) %>%
+  
+  mutate(`class` = as_factor(v_schicht)) %>%
+  mutate(
+    `class` = recode(
+      `class`,
+      `Der Oberschicht` = "upper",
+      `Der oberen Mittelschicht` = "upper",
+      `Der Mittelschicht` = "middle",
+      `Der unteren Mittelschicht` = "lower",
+      `Der Arbeiterschicht` = "lower",
+      `Der Unterschicht` = "lower",
+      `Weiß nicht` = "dont't know / not available"
+    )
+  ) %>%
+  mutate(`class` = fct_na_value_to_level(`class`, level = "dont't know / not available")) %>%
+  
   
   mutate(
     # issues triggering classism
