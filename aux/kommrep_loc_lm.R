@@ -53,6 +53,7 @@ threat_physical_index <- lapply(
 kommrep_loc_lm <- kommrep_loc %>%
   
   mutate(exit = as_factor(v_exit)) %>%
+  
   mutate(stay = recode(
     exit,
     `Weiß nicht` = "FALSE",
@@ -109,6 +110,7 @@ kommrep_loc_lm <- kommrep_loc %>%
   # Measurements for substantial representation
   mutate(muted1 = ifelse(v_sorge_umgang4 == 1L, TRUE, FALSE)) %>%
   mutate(muted2 = ifelse(is.na(muted1), FALSE, muted1)) %>%
+  
   mutate(behavioral_change = ifelse(behavioral_change_index > 0L, TRUE, FALSE)) %>%
   
   mutate(female_diverse = as_factor(v_geschlecht)) %>% 
