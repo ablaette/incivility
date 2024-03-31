@@ -42,6 +42,9 @@ options("modelsummary_format_numeric_latex" = "plain")
 
 ```{r make modified_table, echo = FALSE, results = "asis"}
 source("~/Lab/github/incivility/aux/kommrep_loc_lm.R")
+
+kommrep_loc %>% 
+  haven::write_dta(path = "~/Lab/github/incivility/dta/kommrep_loc_lm.dta")
 ```
 
 
@@ -95,56 +98,91 @@ flextable(returned)
 
 ```{r implications, echo = FALSE}
 kommrep_loc %>%
-  mutate(
-    `behavior_considering exit` = ifelse(as.character(as_factor(v_exit)) == "Ja", TRUE, FALSE),
-#    `behavior_avoid social media` = ifelse(v_sorge_umgang3 == 1L, TRUE, FALSE), # Verzicht auf soziale Medien
-    `behavior_avoid topics` = ifelse(v_sorge_umgang4 == 1L, TRUE, FALSE) #  Zurückhaltung bei Themen
-#     `behavior_avoid places` = ifelse(v_sorge_umgang5 == 1L, TRUE, FALSE)
-  ) %>%
+  mutate(`behavior_considering exit?` = as.character(as_factor(v_exit))) %>%
+  mutate(`behavior_considering exit?` = recode(
+    `behavior_considering exit?`,
+    `Ja` = "yes",
+    `Nein` = "no",
+    "Weiß nicht" = "don't know / missing"
+  )) %>%
+  mutate(`behavior_considering exit?` = ifelse(
+    is.na(`behavior_considering exit?`),
+    "don't know / missing",
+    `behavior_considering exit?`
+  )) %>%
+  mutate(`behavior_avoid topics?` = as.character(as_factor(v_sorge_umgang4))) %>%
+  mutate(`behavior_avoid topics?` = recode(
+    `behavior_avoid topics?`,
+    `Ja` = "yes",
+    `Nicht Gewählt` = "no",
+    `Weiß nicht` = "don't know / missing"
+  )) %>%
+  mutate(`behavior_avoid topics?` = ifelse(
+    is.na(`behavior_avoid topics?`),
+    "don't know / missing",
+    `behavior_avoid topics?`
+  )) %>%
   select(starts_with("behavior_"), weight_ps) %>%
   pivot_longer(cols = starts_with("behavior")) %>%
   mutate(name = gsub("^behavior_(.*?)$", "\\1", name)) %>%
-#  mutate(value = ifelse(is.na(value), FALSE, value)) %>%
   group_by(name, value) %>%
   summarise(n_weighed = sum(weight_ps), .groups = "rowwise") %>%
   pivot_wider(names_from = value, values_from = n_weighed) %>%
-  mutate(true_percent = round(`TRUE` / (`TRUE` + `FALSE` + `NA`) * 100, 1)) %>%
-  mutate(false_percent = round(`FALSE` / (`TRUE` + `FALSE` + `NA`) * 100, 1)) %>%
-  mutate(na_percent = round(`NA` / (`TRUE` + `FALSE` + `NA`) * 100, 1)) %>%
-  mutate(name = factor(
-    name,
-    levels = c(
-      "considering exit",
-#      "avoid places",
-#      "avoid social media",
-      "avoid topics")
-  )) %>%
-#  tibble(category = c("responsiveness", "responsiveness", "substantive representation", "descriptive representation")) %>%
-  select(- `FALSE`, -`TRUE`, -`NA`) %>%
+  mutate(true_percent = `yes` / (`yes` + `no` + `don't know / missing`)) %>%
+  mutate(false_percent = `no` / (`yes` + `no` + `don't know / missing`)) %>%
+  mutate(na_percent = `don't know / missing` / (`yes` + `no` + `don't know / missing`)) %>%
+  mutate(name = factor(name, levels = c("considering exit?", "avoid topics?"))) %>%
+  select(- `no`, -`yes`, -`don't know / missing`) %>%
   rename(
     `what` = "name",
-    `true` = "true_percent",
-    `false` = "false_percent",
-    `na` = "na_percent"
+    `yes` = "true_percent",
+    `no` = "false_percent",
+    `don't know / missing` = "na_percent"
   ) %>%
-  pivot_longer(cols = c("true", "false", "na")) %>%
+  pivot_longer(cols = c("yes", "don't know / missing", "no")) %>%
+  mutate(name = factor(name, levels = c("no", "don't know / missing", "yes"))) %>%
   ggplot(aes(x = what, y = value, fill = name)) +
     geom_bar(stat = "identity", position = "stack") + 
-#    ylim(0, 12.5) +
     geom_text(
-    aes(label = paste0(value, "%")),
+    aes(label = paste0(round(value * 100, 1), "%")),
     position = position_stack(0.5),    # move to center of bars
-#     vjust = -1,    # nudge above top of bar
-     size = 5, color = "white"
+     size = 4, color = "white",
+    lineheight = 1
     ) + 
-    xlab("Type of behavioral change") + 
-    ylab("Share/percent (with case weights)")
-    
+    xlab("Consequences of threats") + 
+    ylab("Share/percent (based on weighed cases)") +
+    theme(
+      legend.title = element_blank(),
+      axis.title = element_text(size = 12),
+      axis.text = element_text(size = 10)
+    ) +
+   scale_y_continuous(labels = scales::percent) +
+   scale_fill_manual(values = RColorBrewer::brewer.pal(6, "Blues")[3:5])
 
-ggsave("~/Lab/github/incivility/svg/behavioral_change.svg", width = 24, height = 12, units = "cm")
+ggsave("~/Lab/github/incivility/svg/behavioral_change.jpg", width = 24, height = 12, units = "cm")
 ```
 
 \newpage
+
+```{r implications, echo = FALSE}
+kommrep_loc %>%
+  select(
+    v_sorge_umgang1, # 1 = Ich habe mein Verhalten nicht geändert
+    v_sorge_umgang2, # 2 = Ich bin gegenüber meiner Umgebung misstrauischer / vorsichtiger.
+    v_sorge_umgang3, # 3 = Ich verzichte (weitgehend) auf die Nutzung sozialer Medien
+    v_sorge_umgang4, # 4 = Ich äußere mich zu be- stimmten Themen seltener als früher
+    v_sorge_umgang5, # 5 = Ich meide bestimmte Orte oder Veranstaltungen
+    v_sorge_umgang6, # 6 = Ich habe meinen Wohnort geändert
+    weight_ps
+  ) %>%
+  pivot_longer(cols = starts_with("v_sorge_umgang")) %>%
+  group_by(name, value) %>%
+  summarise(n_weighed = sum(weight_ps)) %>%
+  filter(value == 1) %>%
+  mutate(share = round(n_weighed / sum(kommrep_loc$weight_ps) * 100, 1))
+```
+
+
 
 ### Table: Plain Shares
 
@@ -349,8 +387,15 @@ table_data %>%
 
 ```{r, echo = FALSE}
 GENDER <- kommrep_loc %>%
-  select(v_exit, v_geschlecht) %>%
-  mutate(exit = ifelse(as.character(as_factor(v_exit)) == "Ja", TRUE, FALSE)) %>%
+  select(v_exit, v_geschlecht, weight_ps) %>%
+  mutate(exit = as.character(as_factor(v_exit))) %>%
+  mutate(exit = recode(
+    exit,
+    `Ja` = "yes",
+    `Nein` = "no",
+    "Weiß nicht" = "don't know / missing"
+  )) %>%
+  mutate(exit = ifelse(is.na(exit), "don't know / missing", exit)) %>%
   mutate(gender = as_factor(v_geschlecht)) %>%
   mutate(gender = recode(
     gender,
@@ -360,69 +405,115 @@ GENDER <- kommrep_loc %>%
     `weitere / andere` = "female/diverse")
   ) %>%
   mutate(gender = factor(gender, levels = c("male", "female/diverse"))) %>%
-  select(gender, `exit`) %>%
+  select(gender, `exit`, weight_ps) %>%
   group_by(gender, `exit`) %>%
   filter(!is.na(gender)) %>%
-  summarise(N = n(), .groups = "rowwise") %>%
+  summarise(N = sum(weight_ps), .groups = "rowwise") %>%
   group_by(gender) %>%
   group_split() %>%
   lapply(function(x) mutate(x, share = x$N / sum(x$N))) %>%
   bind_rows() %>%
-  mutate(`exit` = ifelse(is.na(`exit`), "NA", `exit`)) %>%
-  mutate(`exit` = factor(`exit`, levels = c("FALSE", "NA", "TRUE"))) %>%
-  mutate(percent = round(share * 100, 1)) %>%
-  ggplot(aes(x = gender, y = percent, fill = `exit`)) +
+  mutate(value = sprintf("%s (%s)", paste0(round(share * 100, 1), "%"), round(N, 1))) %>%
+  mutate(exit = factor(exit, levels = c("no", "don't know / missing", "yes"))) %>%
+  ggplot(aes(x = gender, y = share, fill = `exit`)) +
     geom_bar(stat = "identity", position = "stack") +
-    geom_text(aes(label = paste(percent, "%")), position = position_stack(0.5), color = "white") +
+    geom_text(
+      aes(label = value),
+      position = position_stack(0.5),
+      color = "white",
+      lineheight = .8,
+      size = 3
+    ) +
+    scale_fill_manual(values = RColorBrewer::brewer.pal(6, "Blues")[3:5]) +
+    scale_y_continuous(labels = scales::percent) +
     theme(axis.title.y = element_blank(),
-        axis.text.y=element_blank(),
-        axis.ticks.y=element_blank())
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
 
 RACE <- kommrep_loc_lm %>%
-  select(v_exit, racialized) %>%
-  mutate(exit = ifelse(as.character(as_factor(v_exit)) == "Ja", TRUE, FALSE)) %>%
+  select(v_exit, racialized, weight_ps) %>%
+  mutate(exit = as.character(as_factor(v_exit))) %>%
+  mutate(exit = recode(
+    exit,
+    `Ja` = "yes",
+    `Nein` = "no",
+    "Weiß nicht" = "don't know / missing"
+  )) %>%
+  mutate(exit = ifelse(is.na(exit), "don't know / missing", exit)) %>%
   mutate(`racialized` = ifelse(racialized, "yes", "no")) %>%
   filter(!is.na(`racialized`)) %>%
   group_by(`racialized`, `exit`) %>%
-  summarise(N = n(), .groups = "rowwise") %>%
+  summarise(N = sum(weight_ps), .groups = "rowwise") %>%
   group_by(`racialized`) %>%
   group_split() %>%
   lapply(function(x) mutate(x, share = x$N / sum(x$N))) %>%
   bind_rows() %>%
-  mutate(`exit` = ifelse(is.na(`exit`), "NA", `exit`)) %>%
-  mutate(`exit` = factor(`exit`, levels = c("FALSE", "NA", "TRUE"))) %>%
-  mutate(percent = round(share * 100, 1)) %>%
-  ggplot(aes(x = `racialized`, y = percent, fill = `exit`)) +
+  mutate(value = sprintf("%s (%s)", paste0(round(share * 100, 1), "%"), round(N, 1))) %>%
+  mutate(exit = factor(exit, levels = c("no", "don't know / missing", "yes"))) %>%
+  ggplot(aes(x = `racialized`, y = share, fill = `exit`)) +
     geom_bar(stat = "identity", position = "stack") +
-    geom_text(aes(label = paste(percent, "%")), position = position_stack(0.5), color = "white") 
+    scale_fill_manual(values = RColorBrewer::brewer.pal(6, "Blues")[3:5]) +
+    scale_y_continuous(labels = scales::percent) +
+    geom_text(
+      aes(label = value),
+      position = position_stack(0.5),
+      color = "white",
+      lineheight = .8,
+      size = 3
+    ) +
+    ylab("percent (based on weighed cases)")
 
 CLASS <- kommrep_loc_lm %>%
-  select(v_exit, class) %>%
-  mutate(exit = ifelse(as.character(as_factor(v_exit)) == "Ja", TRUE, FALSE)) %>%
-  filter(!is.na(class)) %>%
+  select(v_exit, class, weight_ps) %>%
+  mutate(exit = as.character(as_factor(v_exit))) %>%
+  mutate(exit = recode(
+    exit,
+    `Ja` = "yes",
+    `Nein` = "no",
+    "Weiß nicht" = "don't know / missing"
+  )) %>%
+  mutate(exit = ifelse(is.na(exit), "don't know / missing", exit)) %>%
   mutate(`class` = droplevels(`class`)) %>%
-  select(`exit`, `class`) %>%
+  select(`exit`, `class`, weight_ps) %>%
   group_by(`class`, `exit`) %>%
-  summarise(N = n(), .groups = "rowwise") %>%
+  summarise(N = sum(weight_ps), .groups = "rowwise") %>%
   group_by(`class`) %>%
   group_split() %>%
   lapply(function(x) mutate(x, share = x$N / sum(x$N))) %>%
   bind_rows() %>%
-  mutate(`exit` = ifelse(is.na(`exit`), "NA", `exit`)) %>%
-  mutate(`exit` = factor(`exit`, levels = c("FALSE", "NA", "TRUE"))) %>%
-  mutate(percent = round(share * 100, 1)) %>%
-  ggplot(aes(x = `class`, y = percent, fill = `exit`)) +
+  mutate(value = sprintf("%s (%s)", paste0(round(share * 100, 1), "%"), round(N, 1))) %>%
+  mutate(exit = factor(exit, levels = c("no", "don't know / missing", "yes"))) %>%
+  filter(class != "dont't know / not available") %>%
+  ggplot(aes(x = `class`, y = share, fill = `exit`)) +
     geom_bar(stat = "identity", position = "stack") +
-    geom_text(aes(label = paste(percent, "%")), position = position_stack(0.5), color = "white")  +
+    geom_text(
+      aes(label = value),
+      position = position_stack(0.5),
+      color = "white",
+      lineheight = .8,
+      size = 3
+    )  +
+    scale_fill_manual(values = RColorBrewer::brewer.pal(6, "Blues")[3:5]) +
+    scale_y_continuous(labels = scales::percent) +
     theme(axis.title.y = element_blank(),
-        axis.text.y=element_blank(),
-        axis.ticks.y=element_blank())
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
 
 ggarrange(RACE, GENDER, CLASS, common.legend = TRUE, nrow = 1)
 
-ggsave("~/Lab/github/incivility/svg/considering_exit_by_group.svg", width = 24, height = 12, units = "cm")
+ggsave("~/Lab/github/incivility/svg/considering_exit_by_group.jpg", width = 24, height = 12, units = "cm")
 ```
 
+
+```{r}
+A <- matrix(c(1772.7 + 113.7, 155.9 + 16.7, 86.9, 18.1), ncol = 2, nrow = 2, byrow = TRUE)
+B <- matrix(c(1170.1 + 56.3, 734.8 + 73.3, 61, 40.8), ncol = 2, nrow = 2, byrow = TRUE)
+C <- matrix(c(682.2 + 30.2 + 912.2 + 61.6, 262.8 + 29.1, 26.9+47.4, 23.1), ncol = 2, nrow = 2, byrow = TRUE)
+
+chisq.test(A) # X-squared = 8.6785, df = 1, p-value = 0.00322 | 
+chisq.test(B) # X-squared = 1.7035e-27, df = 1, p-value = 1
+chisq.test(C) # X-squared = 5.1139, df = 1, p-value = 0.02373
+```
 
 \newpage
 
@@ -430,8 +521,18 @@ ggsave("~/Lab/github/incivility/svg/considering_exit_by_group.svg", width = 24, 
 
 ```{r, echo = FALSE}
 GENDER <- kommrep_loc %>%
-  select(v_sorge_umgang4, v_geschlecht) %>%
+  select(v_sorge_umgang4, v_geschlecht, weight_ps) %>%
+  
   mutate(`avoid topics` = ifelse(v_sorge_umgang4 == 1L, TRUE, FALSE)) %>%
+  mutate(`avoid topics` = as.character(as_factor(v_sorge_umgang4))) %>%
+  mutate(`avoid topics` = recode(
+    `avoid topics`,
+    `Ja` = "yes",
+    `Nicht Gewählt` = "no",
+    `Weiß nicht` = "don't know / missing"
+  )) %>%
+  mutate(`avoid topics` = ifelse(is.na(`avoid topics`), "don't know / missing", `avoid topics`)) %>%
+
   mutate(gender = as_factor(v_geschlecht)) %>%
   mutate(gender = recode(
     gender,
@@ -441,45 +542,78 @@ GENDER <- kommrep_loc %>%
     `weitere / andere` = "female/diverse")
   ) %>%
   mutate(gender = factor(gender, levels = c("male", "female/diverse"))) %>%
-  select(gender, `avoid topics`) %>%
+  select(gender, `avoid topics`, weight_ps) %>%
   group_by(gender, `avoid topics`) %>%
   filter(!is.na(gender)) %>%
-  summarise(N = n(), .groups = "rowwise") %>%
+  summarise(N = sum(weight_ps), .groups = "rowwise") %>%
   group_by(gender) %>%
   group_split() %>%
   lapply(function(x) mutate(x, share = x$N / sum(x$N))) %>%
   bind_rows() %>%
-  mutate(`avoid topics` = ifelse(is.na(`avoid topics`), "NA", `avoid topics`)) %>%
-  mutate(`avoid topics` = factor(`avoid topics`, levels = c("FALSE", "NA", "TRUE"))) %>%
-  mutate(percent = round(share * 100, 1)) %>%
-  ggplot(aes(x = gender, y = percent, fill = `avoid topics`)) +
+  mutate(value = sprintf("%s (%s)", paste0(round(share * 100, 1), "%"), round(N, 1))) %>%
+  mutate(`avoid topics` = factor(`avoid topics`, levels = c("no", "don't know / missing", "yes"))) %>%
+  ggplot(aes(x = gender, y = share, fill = `avoid topics`)) +
     geom_bar(stat = "identity", position = "stack") +
-    geom_text(aes(label = paste(percent, "%")), position = position_stack(0.5), color = "white") +
+    geom_text(
+      aes(label = value),
+      position = position_stack(0.5),
+      color = "white",
+      lineheight = .8,
+      size = 3
+    ) +
+    scale_fill_manual(values = RColorBrewer::brewer.pal(6, "Blues")[3:5]) +
+    scale_y_continuous(labels = scales::percent) +
+    guides(fill = guide_legend(reverse = TRUE)) +  
     theme(axis.title.y = element_blank(),
         axis.text.y=element_blank(),
         axis.ticks.y=element_blank())
 
 RACE <- kommrep_loc_lm %>%
-  select(v_sorge_umgang4, racialized) %>%
+  select(v_sorge_umgang4, racialized, weight_ps) %>%
   mutate(`avoid topics` = ifelse(v_sorge_umgang4 == 1L, TRUE, FALSE)) %>%
+  mutate(`avoid topics` = as.character(as_factor(v_sorge_umgang4))) %>%
+  mutate(`avoid topics` = recode(
+    `avoid topics`,
+    `Ja` = "yes",
+    `Nicht Gewählt` = "no",
+    `Weiß nicht` = "don't know / missing"
+  )) %>%
+  mutate(`avoid topics` = ifelse(is.na(`avoid topics`), "don't know / missing", `avoid topics`)) %>%
   mutate(`racialized` = ifelse(racialized, "yes", "no")) %>%
   filter(!is.na(`racialized`)) %>%
   group_by(`racialized`, `avoid topics`) %>%
-  summarise(N = n(), .groups = "rowwise") %>%
+  summarise(N = sum(weight_ps), .groups = "rowwise") %>%
   group_by(`racialized`) %>%
   group_split() %>%
   lapply(function(x) mutate(x, share = x$N / sum(x$N))) %>%
   bind_rows() %>%
-  mutate(`avoid topics` = ifelse(is.na(`avoid topics`), "NA", `avoid topics`)) %>%
-  mutate(`avoid topics` = factor(`avoid topics`, levels = c("FALSE", "NA", "TRUE"))) %>%
-  mutate(percent = round(share * 100, 1)) %>%
-  ggplot(aes(x = `racialized`, y = percent, fill = `avoid topics`)) +
+  mutate(`avoid topics` = factor(`avoid topics`, levels = c("no", "don't know / missing", "yes"))) %>%
+  mutate(value = sprintf("%s (%s)", paste0(round(share * 100, 1), "%"), round(N, 1))) %>%
+  ggplot(aes(x = `racialized`, y = share, fill = `avoid topics`)) +
     geom_bar(stat = "identity", position = "stack") +
-    geom_text(aes(label = paste(percent, "%")), position = position_stack(0.5), color = "white") 
+    scale_fill_manual(values = RColorBrewer::brewer.pal(6, "Blues")[3:5]) +
+    scale_y_continuous(labels = scales::percent) +
+    guides(fill = guide_legend(reverse = TRUE)) +
+    ylab("percent (based on weighed cases)") +
+    geom_text(
+      aes(label = value),
+      position = position_stack(0.5),
+      color = "white",
+      lineheight = .8,
+      size = 3
+    ) 
 
 CLASS <- kommrep_loc %>%
-  select(v_sorge_umgang4, v_schicht) %>%
+  select(v_sorge_umgang4, v_schicht, weight_ps) %>%
   mutate(`avoid topics` = ifelse(v_sorge_umgang4 == 1L, TRUE, FALSE)) %>%
+  mutate(`avoid topics` = as.character(as_factor(v_sorge_umgang4))) %>%
+  mutate(`avoid topics` = recode(
+    `avoid topics`,
+    `Ja` = "yes",
+    `Nicht Gewählt` = "no",
+    `Weiß nicht` = "don't know / missing"
+  )) %>%
+  mutate(`avoid topics` = ifelse(is.na(`avoid topics`), "don't know / missing", `avoid topics`)) %>%
   mutate(`class` = as_factor(v_schicht)) %>%
   mutate(
     `class` = recode(
@@ -494,26 +628,44 @@ CLASS <- kommrep_loc %>%
   mutate(`class` = na_if(`class`, "Weiß nicht")) %>%
   filter(!is.na(class)) %>%
   mutate(`class` = droplevels(`class`)) %>%
-  select(`avoid topics`, `class`) %>%
+  select(`avoid topics`, `class`, weight_ps) %>%
   group_by(`class`, `avoid topics`) %>%
-  summarise(N = n(), .groups = "rowwise") %>%
+  summarise(N = sum(weight_ps), .groups = "rowwise") %>%
   group_by(`class`) %>%
   group_split() %>%
   lapply(function(x) mutate(x, share = x$N / sum(x$N))) %>%
   bind_rows() %>%
-  mutate(`avoid topics` = ifelse(is.na(`avoid topics`), "NA", `avoid topics`)) %>%
-  mutate(`avoid topics` = factor(`avoid topics`, levels = c("FALSE", "NA", "TRUE"))) %>%
-  mutate(percent = round(share * 100, 1)) %>%
-  ggplot(aes(x = `class`, y = percent, fill = `avoid topics`)) +
+  mutate(`avoid topics` = factor(`avoid topics`, levels = c("no", "don't know / missing", "yes"))) %>%
+  mutate(value = sprintf("%s (%s)", paste0(round(share * 100, 1), "%"), round(N, 1))) %>%
+  ggplot(aes(x = `class`, y = share, fill = `avoid topics`)) +
     geom_bar(stat = "identity", position = "stack") +
-    geom_text(aes(label = paste(percent, "%")), position = position_stack(0.5), color = "white")  +
+    scale_fill_manual(values = RColorBrewer::brewer.pal(6, "Blues")[3:5]) +
+    scale_y_continuous(labels = scales::percent) +
+    geom_text(
+      aes(label = value),
+      position = position_stack(0.5),
+      color = "white",
+      lineheight = .8,
+      size = 3
+    )  +
+    guides(fill = guide_legend(reverse = TRUE)) +
     theme(axis.title.y = element_blank(),
         axis.text.y=element_blank(),
         axis.ticks.y=element_blank())
 
 ggarrange(RACE, GENDER, CLASS, common.legend = TRUE, nrow = 1)
 
-ggsave("~/Lab/github/incivility/svg/avoiding_topics_by_group.svg", width = 24, height = 12, units = "cm")
+ggsave("~/Lab/github/incivility/svg/avoiding_topics_by_group.jpg", width = 24, height = 12, units = "cm")
+```
+
+```{r}
+A <- matrix(c(394.4 + 1381.4, 38.9+130.6, 197.6, 21.1), ncol = 2, nrow = 2, byrow = TRUE)
+B <- matrix(c(222.8 + 960, 203.5+533.2, 104.6, 112.1), ncol = 2, nrow = 2, byrow = TRUE)
+C <- matrix(c(136.7+524.8+201+3+721, 37.1+205.4, 77.8+98.9,36.5), ncol = 2, nrow = 2, byrow = TRUE)
+
+chisq.test(A) # X-squared = 0.11328, df = 1, p-value = 0.7364
+chisq.test(B) # X-squared = 13.942, df = 1, p-value = 0.0001886
+chisq.test(C) # X-squared = 2.0975, df = 1, p-value = 0.1475
 ```
 
 \newpage
