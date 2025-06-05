@@ -5,6 +5,7 @@ date: "`r Sys.Date()`"
 output:
   pdf_document:
     latex_engine: xelatex
+classoption: landscape
 bibliography: literatur.bibtex
 always_allow_html: yes
 editor_options:
@@ -164,7 +165,7 @@ ggsave("~/Lab/github/incivility/svg/behavioral_change.jpg", width = 24, height =
 
 \newpage
 
-```{r implications, echo = FALSE}
+```{r implications_old, echo = FALSE}
 kommrep_loc %>%
   select(
     v_sorge_umgang1, # 1 = Ich habe mein Verhalten nicht geändert
@@ -190,14 +191,13 @@ kommrep_loc %>%
 kommrep_loc_lm %>%
   select(
     threat_verbal, threat_physical,
+    threat_verbal_bin, threat_physical_bin,
     female_diverse,
     class,
     racialized,
     soc, gen, div,
     weight_ps
   ) %>%
-  mutate(threat_verbal_bin = ifelse(threat_verbal > 0, TRUE, FALSE)) %>%
-  mutate(threat_physical_bin = ifelse(threat_physical > 0, TRUE, FALSE)) %>%
   select(-threat_verbal, -threat_physical) %>%
   
   mutate(class_lower = ifelse(class == "lower", TRUE, FALSE)) %>%
@@ -386,8 +386,10 @@ table_data %>%
 ### Figure 3: Certain descriptive characteristics and consider exit 
 
 ```{r, echo = FALSE}
-GENDER <- kommrep_loc %>%
-  select(v_exit, v_geschlecht, weight_ps) %>%
+GENDER <- kommrep_loc_lm %>%
+  select(v_exit, v_geschlecht, weight_ps, threat_experience) %>%
+  mutate(threat_experience = ifelse(is.na(threat_experience), TRUE, threat_experience)) %>%
+  mutate(threat_experience = sprintf("Threat experience: %s", as.character(threat_experience))) %>%
   mutate(exit = as.character(as_factor(v_exit))) %>%
   mutate(exit = recode(
     exit,
@@ -405,11 +407,11 @@ GENDER <- kommrep_loc %>%
     `weitere / andere` = "female/diverse")
   ) %>%
   mutate(gender = factor(gender, levels = c("male", "female/diverse"))) %>%
-  select(gender, `exit`, weight_ps) %>%
-  group_by(gender, `exit`) %>%
+  select(gender, `exit`, weight_ps, threat_experience) %>%
+  group_by(gender, `exit`, threat_experience) %>%
   filter(!is.na(gender)) %>%
   summarise(N = sum(weight_ps), .groups = "rowwise") %>%
-  group_by(gender) %>%
+  group_by(gender, threat_experience) %>%
   group_split() %>%
   lapply(function(x) mutate(x, share = x$N / sum(x$N))) %>%
   bind_rows() %>%
@@ -417,6 +419,7 @@ GENDER <- kommrep_loc %>%
   mutate(exit = factor(exit, levels = c("no", "don't know / missing", "yes"))) %>%
   ggplot(aes(x = gender, y = share, fill = `exit`)) +
     geom_bar(stat = "identity", position = "stack") +
+    facet_wrap(~ threat_experience, ncol = 1) +
     geom_text(
       aes(label = value),
       position = position_stack(0.5),
@@ -431,7 +434,9 @@ GENDER <- kommrep_loc %>%
         axis.ticks.y = element_blank())
 
 RACE <- kommrep_loc_lm %>%
-  select(v_exit, racialized, weight_ps) %>%
+  select(v_exit, racialized, weight_ps, threat_experience) %>%
+  mutate(threat_experience = ifelse(is.na(threat_experience), TRUE, threat_experience)) %>%
+  mutate(threat_experience = sprintf("Threat experience: %s", as.character(threat_experience))) %>%
   mutate(exit = as.character(as_factor(v_exit))) %>%
   mutate(exit = recode(
     exit,
@@ -442,9 +447,9 @@ RACE <- kommrep_loc_lm %>%
   mutate(exit = ifelse(is.na(exit), "don't know / missing", exit)) %>%
   mutate(`racialized` = ifelse(racialized, "yes", "no")) %>%
   filter(!is.na(`racialized`)) %>%
-  group_by(`racialized`, `exit`) %>%
+  group_by(`racialized`, `exit`, threat_experience) %>%
   summarise(N = sum(weight_ps), .groups = "rowwise") %>%
-  group_by(`racialized`) %>%
+  group_by(`racialized`, threat_experience) %>%
   group_split() %>%
   lapply(function(x) mutate(x, share = x$N / sum(x$N))) %>%
   bind_rows() %>%
@@ -452,6 +457,7 @@ RACE <- kommrep_loc_lm %>%
   mutate(exit = factor(exit, levels = c("no", "don't know / missing", "yes"))) %>%
   ggplot(aes(x = `racialized`, y = share, fill = `exit`)) +
     geom_bar(stat = "identity", position = "stack") +
+    facet_wrap(~ threat_experience, ncol = 1) +
     scale_fill_manual(values = RColorBrewer::brewer.pal(6, "Blues")[3:5]) +
     scale_y_continuous(labels = scales::percent) +
     geom_text(
@@ -464,7 +470,9 @@ RACE <- kommrep_loc_lm %>%
     ylab("percent (based on weighed cases)")
 
 CLASS <- kommrep_loc_lm %>%
-  select(v_exit, class, weight_ps) %>%
+  select(v_exit, class, weight_ps, threat_experience) %>%
+  mutate(threat_experience = ifelse(is.na(threat_experience), TRUE, threat_experience)) %>%
+  mutate(threat_experience = sprintf("Threat experience: %s", as.character(threat_experience))) %>%
   mutate(exit = as.character(as_factor(v_exit))) %>%
   mutate(exit = recode(
     exit,
@@ -474,10 +482,10 @@ CLASS <- kommrep_loc_lm %>%
   )) %>%
   mutate(exit = ifelse(is.na(exit), "don't know / missing", exit)) %>%
   mutate(`class` = droplevels(`class`)) %>%
-  select(`exit`, `class`, weight_ps) %>%
-  group_by(`class`, `exit`) %>%
+  select(`exit`, `class`, weight_ps, threat_experience) %>%
+  group_by(`class`, `exit`, threat_experience) %>%
   summarise(N = sum(weight_ps), .groups = "rowwise") %>%
-  group_by(`class`) %>%
+  group_by(`class`, threat_experience) %>%
   group_split() %>%
   lapply(function(x) mutate(x, share = x$N / sum(x$N))) %>%
   bind_rows() %>%
@@ -486,6 +494,7 @@ CLASS <- kommrep_loc_lm %>%
   filter(class != "dont't know / not available") %>%
   ggplot(aes(x = `class`, y = share, fill = `exit`)) +
     geom_bar(stat = "identity", position = "stack") +
+    facet_wrap(~ threat_experience, ncol = 1) +
     geom_text(
       aes(label = value),
       position = position_stack(0.5),
@@ -505,7 +514,7 @@ ggsave("~/Lab/github/incivility/svg/considering_exit_by_group.jpg", width = 24, 
 ```
 
 
-```{r}
+```{r chisq_exit}
 A <- matrix(c(1772.7 + 113.7, 155.9 + 16.7, 86.9, 18.1), ncol = 2, nrow = 2, byrow = TRUE)
 B <- matrix(c(1170.1 + 56.3, 734.8 + 73.3, 61, 40.8), ncol = 2, nrow = 2, byrow = TRUE)
 C <- matrix(c(682.2 + 30.2 + 912.2 + 61.6, 262.8 + 29.1, 26.9+47.4, 23.1), ncol = 2, nrow = 2, byrow = TRUE)
@@ -515,14 +524,27 @@ chisq.test(B) # X-squared = 1.7035e-27, df = 1, p-value = 1
 chisq.test(C) # X-squared = 5.1139, df = 1, p-value = 0.02373
 ```
 
+```{r chisq_noexit}
+A <- matrix(c(1772.7, 155.9, 86.9 + 113.7, 18.1 + 16.7), ncol = 2, nrow = 2, byrow = TRUE)
+B <- matrix(c(1170.1, 734.8, 61  + 56.3, 40.8 + 73.3), ncol = 2, nrow = 2, byrow = TRUE)
+C <- matrix(c(682.2 + 30.2 + 912.2 + 61.6, 262.8, 26.9 + 47.4, 23.1 + 29.1), ncol = 2, nrow = 2, byrow = TRUE)
+
+chisq.test(A) # X-squared = 8.6785, df = 1, p-value = 0.00322 | 
+chisq.test(B) # X-squared = 1.7035e-27, df = 1, p-value = 1
+chisq.test(C) # X-squared = 5.1139, df = 1, p-value = 0.02373
+```
+
+
 \newpage
 
 ### Figure 4: Certain descriptive characteristics and avoid topics
 
 ```{r, echo = FALSE}
-GENDER <- kommrep_loc %>%
-  select(v_sorge_umgang4, v_geschlecht, weight_ps) %>%
-  
+GENDER <- kommrep_loc_lm %>%
+  select(v_sorge_umgang4, v_geschlecht, weight_ps, threat_experience) %>%
+  mutate(threat_experience = ifelse(is.na(threat_experience), TRUE, threat_experience)) %>%
+  mutate(threat_experience = sprintf("Threat experience: %s", as.character(threat_experience))) %>%
+
   mutate(`avoid topics` = ifelse(v_sorge_umgang4 == 1L, TRUE, FALSE)) %>%
   mutate(`avoid topics` = as.character(as_factor(v_sorge_umgang4))) %>%
   mutate(`avoid topics` = recode(
@@ -542,11 +564,11 @@ GENDER <- kommrep_loc %>%
     `weitere / andere` = "female/diverse")
   ) %>%
   mutate(gender = factor(gender, levels = c("male", "female/diverse"))) %>%
-  select(gender, `avoid topics`, weight_ps) %>%
-  group_by(gender, `avoid topics`) %>%
+  select(gender, `avoid topics`, weight_ps, threat_experience) %>%
+  group_by(gender, `avoid topics`, threat_experience) %>%
   filter(!is.na(gender)) %>%
   summarise(N = sum(weight_ps), .groups = "rowwise") %>%
-  group_by(gender) %>%
+  group_by(gender, threat_experience) %>%
   group_split() %>%
   lapply(function(x) mutate(x, share = x$N / sum(x$N))) %>%
   bind_rows() %>%
@@ -554,6 +576,7 @@ GENDER <- kommrep_loc %>%
   mutate(`avoid topics` = factor(`avoid topics`, levels = c("no", "don't know / missing", "yes"))) %>%
   ggplot(aes(x = gender, y = share, fill = `avoid topics`)) +
     geom_bar(stat = "identity", position = "stack") +
+    facet_wrap(~ threat_experience, ncol = 1) +
     geom_text(
       aes(label = value),
       position = position_stack(0.5),
@@ -569,7 +592,11 @@ GENDER <- kommrep_loc %>%
         axis.ticks.y=element_blank())
 
 RACE <- kommrep_loc_lm %>%
-  select(v_sorge_umgang4, racialized, weight_ps) %>%
+  select(v_sorge_umgang4, racialized, weight_ps, threat_experience) %>%
+  
+  mutate(threat_experience = ifelse(is.na(threat_experience), TRUE, threat_experience)) %>%
+  mutate(threat_experience = sprintf("Threat experience: %s", as.character(threat_experience))) %>%
+
   mutate(`avoid topics` = ifelse(v_sorge_umgang4 == 1L, TRUE, FALSE)) %>%
   mutate(`avoid topics` = as.character(as_factor(v_sorge_umgang4))) %>%
   mutate(`avoid topics` = recode(
@@ -581,9 +608,9 @@ RACE <- kommrep_loc_lm %>%
   mutate(`avoid topics` = ifelse(is.na(`avoid topics`), "don't know / missing", `avoid topics`)) %>%
   mutate(`racialized` = ifelse(racialized, "yes", "no")) %>%
   filter(!is.na(`racialized`)) %>%
-  group_by(`racialized`, `avoid topics`) %>%
+  group_by(`racialized`, `avoid topics`, threat_experience) %>%
   summarise(N = sum(weight_ps), .groups = "rowwise") %>%
-  group_by(`racialized`) %>%
+  group_by(`racialized`, threat_experience) %>%
   group_split() %>%
   lapply(function(x) mutate(x, share = x$N / sum(x$N))) %>%
   bind_rows() %>%
@@ -591,6 +618,7 @@ RACE <- kommrep_loc_lm %>%
   mutate(value = sprintf("%s (%s)", paste0(round(share * 100, 1), "%"), round(N, 1))) %>%
   ggplot(aes(x = `racialized`, y = share, fill = `avoid topics`)) +
     geom_bar(stat = "identity", position = "stack") +
+    facet_wrap(~ threat_experience, ncol = 1) +
     scale_fill_manual(values = RColorBrewer::brewer.pal(6, "Blues")[3:5]) +
     scale_y_continuous(labels = scales::percent) +
     guides(fill = guide_legend(reverse = TRUE)) +
@@ -603,8 +631,10 @@ RACE <- kommrep_loc_lm %>%
       size = 3
     ) 
 
-CLASS <- kommrep_loc %>%
-  select(v_sorge_umgang4, v_schicht, weight_ps) %>%
+CLASS <- kommrep_loc_lm %>%
+  select(v_sorge_umgang4, v_schicht, weight_ps, threat_experience) %>%
+  mutate(threat_experience = ifelse(is.na(threat_experience), TRUE, threat_experience)) %>%
+  mutate(threat_experience = sprintf("Threat experience: %s", as.character(threat_experience))) %>%
   mutate(`avoid topics` = ifelse(v_sorge_umgang4 == 1L, TRUE, FALSE)) %>%
   mutate(`avoid topics` = as.character(as_factor(v_sorge_umgang4))) %>%
   mutate(`avoid topics` = recode(
@@ -628,10 +658,10 @@ CLASS <- kommrep_loc %>%
   mutate(`class` = na_if(`class`, "Weiß nicht")) %>%
   filter(!is.na(class)) %>%
   mutate(`class` = droplevels(`class`)) %>%
-  select(`avoid topics`, `class`, weight_ps) %>%
-  group_by(`class`, `avoid topics`) %>%
+  select(`avoid topics`, `class`, weight_ps, threat_experience) %>%
+  group_by(`class`, `avoid topics`, threat_experience) %>%
   summarise(N = sum(weight_ps), .groups = "rowwise") %>%
-  group_by(`class`) %>%
+  group_by(`class`, threat_experience) %>%
   group_split() %>%
   lapply(function(x) mutate(x, share = x$N / sum(x$N))) %>%
   bind_rows() %>%
@@ -639,6 +669,7 @@ CLASS <- kommrep_loc %>%
   mutate(value = sprintf("%s (%s)", paste0(round(share * 100, 1), "%"), round(N, 1))) %>%
   ggplot(aes(x = `class`, y = share, fill = `avoid topics`)) +
     geom_bar(stat = "identity", position = "stack") +
+    facet_wrap(~ threat_experience, ncol = 1) +
     scale_fill_manual(values = RColorBrewer::brewer.pal(6, "Blues")[3:5]) +
     scale_y_continuous(labels = scales::percent) +
     geom_text(
@@ -755,7 +786,19 @@ stay1 <- glm(
   family = binomial("logit")
 )
 
-stay2 <- glm(
+stay2a <- glm(
+  stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + racialized,
+  data = kommrep_loc_lm,
+  family = binomial("logit")
+)
+
+stay2b <- glm(
+  stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + racialized  + class_normalized,
+  data = kommrep_loc_lm,
+  family = binomial("logit")
+)
+
+stay2c <- glm(
   stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class_normalized + racialized,
   data = kommrep_loc_lm,
   family = binomial("logit")
@@ -770,8 +813,10 @@ stay3 <- glm(
 modelsummary::modelsummary(
   models = list(
     A = stay1,
-    B = stay2,
-    C = stay3
+    B = stay2a,
+    C = stay2b,
+    D = stay2c,
+    E = stay3
   ),
   estimate = "{estimate} ({std.error}){stars}",
   statistic = NULL,

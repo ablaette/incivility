@@ -64,8 +64,12 @@ kommrep_loc_lm <- kommrep_loc %>%
   
   mutate(threat_verbal = threat_comm_index / 2) %>% 
   mutate(threat_physical = threat_physical_index / 3) %>% 
-  mutate(threat_experience = ifelse(as.vector(v_bedrohung) == 1L, TRUE, FALSE)) %>% 
   
+  mutate(threat_verbal_bin = ifelse(threat_verbal > 0, TRUE, FALSE)) %>%
+  mutate(threat_physical_bin = ifelse(threat_physical > 0, TRUE, FALSE)) %>%
+
+  mutate(threat_experience = ifelse(as.vector(v_bedrohung) == 1L, TRUE, FALSE)) %>% 
+
   mutate(age = 2022 - v_alter) %>%
   mutate(age = age - min(age, na.rm = TRUE)) %>% 
   mutate(age = age / max(age, na.rm = TRUE)) %>% 
@@ -123,7 +127,7 @@ kommrep_loc_lm <- kommrep_loc %>%
   )) %>%
   mutate(female_diverse = as.logical(female_diverse)) %>%
   
-  mutate(class_normalized = ifelse(as.vector(v_schicht) != 98, v_schicht - 1L / 6L, NA)) %>%
+  mutate(class_normalized = ifelse(as.vector(v_schicht) != 98, ((v_schicht - 1L) / 5L) * -1 + 1, NA)) %>%
   
   mutate(`class` = as_factor(v_schicht)) %>%
   mutate(
