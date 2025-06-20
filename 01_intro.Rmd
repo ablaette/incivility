@@ -13,6 +13,7 @@ editor_options:
 ---
 
 ```{r load_libraries, message = FALSE, echo = FALSE}
+library(data.table)
 library(dplyr)
 library(magrittr)
 library(tidyr)
@@ -32,8 +33,170 @@ library(broom.mixed) # to avoid later msg of loading
 library(officer)
 library(ggpubr)
 library(kableExtra)
+```
 
-stopifnot(packageVersion("kommrep") >= package_version("0.4.1"))
+```{r check_kommrep_version, echo = FALSE}
+stopifnot(packageVersion("kommrep") >= package_version("0.4.6"))
+```
+
+```{r make modified_table, echo = FALSE, results = "asis"}
+# 1 = Ich habe mein Verhalten nicht geändert
+# 2 = Ich bin gegenüber meiner Umgebung misstrauischer / vorsichtiger.
+# 3 = Ich verzichte (weitgehend) auf die Nutzung sozialer Medien
+# 4 = Ich äußere mich zu be- stimmten Themen seltener als früher
+# 5 = Ich meide bestimmte Orte oder Veranstaltungen
+# 6 = Ich habe meinen Wohnort geändert
+# 7 = Anders, und zwar
+#
+# Enge Definition von substantieller Repräsentation: Nur 4
+# Wenn weit: auch 3 und 6 - Einschränkungen von Interaktionen mit Bürger*innen
+behavioral_change_index <- lapply(
+  paste0("v_sorge_umgang", 3:5),
+  function(var){
+    x <- as.vector(kommrep_loc[[var]])
+    x <- ifelse(x == 98, NA, x)
+    x <- ifelse(x == 1, 1L, 0L)
+  }
+) %>%
+  as.data.frame() %>%
+  as.matrix() %>%
+  apply(1, sum, na.rm = TRUE)
+
+
+threat_comm_index <- lapply(
+  # v_perzb_art1 = Art der der Bedrohung: Anrufe, E-Mails, Briefe oder Faxe
+  # v_perzb_art2 = Art der der Bedrohung: sozialen Netzwerke
+  paste0("v_perzb_art", 1:2), 
+  function(var){
+    x <- as.vector(kommrep_loc[[var]])
+    x <- ifelse(x == 98, NA, x)
+    x <- x - 1
+    x
+  }
+) %>%
+  as.data.frame() %>%
+  as.matrix() %>%
+  apply(1, function(row) if (all(is.na(row))) NA else sum(row, na.rm = TRUE))
+
+threat_physical_index <- lapply(
+  paste0("v_perzb_art", 3:5),
+  function(var){
+    x <- as.vector(kommrep_loc[[var]])
+    x <- ifelse(x == 98, NA, x)
+    x <- x - 1
+    x
+  }
+) %>%
+  as.data.frame() %>%
+  as.matrix() %>%
+  apply(1, function(row) if (all(is.na(row))) NA else sum(row, na.rm = TRUE))
+
+
+kommrep_loc_lm <- kommrep_loc %>%
+  
+  mutate(exit = as_factor(v_exit)) %>%
+  
+  mutate(stay = recode(
+    exit,
+    `Weiß nicht` = "FALSE",
+    `Ja` = "FALSE",
+    `Nein` = "TRUE"
+  )) %>%
+  mutate(stay = as.logical(stay)) %>%
+  
+  mutate(threat_verbal = threat_comm_index / 2) %>% 
+  mutate(threat_physical = threat_physical_index / 3) %>% 
+  
+  mutate(threat_verbal_bin = ifelse(threat_verbal > 0, TRUE, FALSE)) %>%
+  mutate(threat_physical_bin = ifelse(threat_physical > 0, TRUE, FALSE)) %>%
+
+  mutate(threat_experience = ifelse(as.vector(v_bedrohung) == 1L, TRUE, FALSE)) %>% 
+
+  mutate(age = 2022 - v_alter) %>%
+  mutate(age = age - min(age, na.rm = TRUE)) %>% 
+  mutate(age = age / max(age, na.rm = TRUE)) %>% 
+  
+  mutate(AfD = ifelse(party == "AfD", TRUE, FALSE)) %>%
+  mutate(CDU = ifelse(party == "CDU", TRUE, FALSE)) %>%
+  mutate(CSU = ifelse(party == "CSU", TRUE, FALSE)) %>%
+  mutate(FW = ifelse(party == "Freie Wähler", TRUE, FALSE)) %>%
+  mutate(LINKE = ifelse(party == "Die Linke", TRUE, FALSE)) %>%
+  mutate(GRUENE = ifelse(party == "Bündnis 90/Die Grünen", TRUE, FALSE)) %>%
+  mutate(SPD = ifelse(party == "SPD", TRUE, FALSE)) %>%
+  
+  mutate(asian = as.logical(as.integer(as.factor(v_out3_mmh)) - 1) | as.logical(as.integer(as.factor(v_out3_mkm)) - 1)) %>%	# Asiatisch
+  mutate(asian = ifelse(is.na(asian), FALSE, asian)) %>% 
+  
+  mutate(jewish = as.logical(as.integer(as.factor(v_out4_mmh)) - 1) | as.logical(as.integer(as.factor(v_out4_mkm)) - 1)) %>%	# Jüdisch
+  mutate(jewish = ifelse(is.na(jewish), FALSE, jewish)) %>% 
+  
+  mutate(muslim = as.logical(as.integer(as.factor(v_out5_mmh)) - 1)| as.logical(as.integer(as.factor(v_out5_mkm)) - 1)) %>%	# Muslimisch
+  mutate(muslim = ifelse(is.na(muslim), FALSE, muslim)) %>% 
+  
+  mutate(sintiroma = as.logical(as.integer(as.factor(v_out6_mmh)) - 1) | as.logical(as.integer(as.factor(v_out6_mkm)) - 1)) %>%	# Sinti oder Roma
+  mutate(sintiroma = ifelse(is.na(sintiroma), FALSE, sintiroma)) %>% 
+  
+  mutate(turkish = as.logical(as.integer(as.factor(v_out7_mmh)) - 1)| as.logical(as.integer(as.factor(v_out7_mkm)) - 1)) %>%	# Türkisch
+  mutate(turkish = ifelse(is.na(turkish), FALSE, turkish)) %>% 
+  
+  mutate(eastern = as.logical(as.integer(as.factor(v_out8_mmh)) - 1) | as.logical(as.integer(as.factor(v_out8_mkm)) - 1)) %>%	# Osteuropäisch
+  mutate(eastern = ifelse(is.na(eastern), FALSE, eastern)) %>% 
+  
+  mutate(black = as.logical(as.integer(as.factor(v_out9_mmh)) - 1)| as.logical(as.integer(as.factor(v_out9_mkm)) - 1)) %>%	# Schwarze Person
+  mutate(black = ifelse(is.na(black), FALSE, black)) %>% 
+  
+  mutate(muslim_turkish = muslim | turkish) %>% 
+  
+  mutate(racialized = asian | jewish | muslim | sintiroma | turkish | eastern | black) %>% 
+  
+  mutate(exit = as_factor(v_exit)) %>%
+  mutate(exit = ifelse(exit == "Weiß nicht", NA, exit)) %>%
+  mutate(exit = !as.logical(as.integer(exit) - 1)) %>% 
+  
+  # Measurements for substantial representation
+  mutate(muted1 = ifelse(v_sorge_umgang4 == 1L, TRUE, FALSE)) %>%
+  mutate(muted2 = ifelse(is.na(muted1), FALSE, muted1)) %>%
+  
+  mutate(behavioral_change = ifelse(behavioral_change_index > 0L, TRUE, FALSE)) %>%
+  
+  mutate(female_diverse = as_factor(v_geschlecht)) %>% 
+  mutate(female_diverse = recode(
+    female_diverse,
+    `weiblich` = "TRUE",
+    `männlich` = "FALSE",
+    `divers` = "TRUE",
+    `weitere / andere` = "TRUE"
+  )) %>%
+  mutate(female_diverse = as.logical(female_diverse)) %>%
+  
+  mutate(class_normalized = ifelse(as.vector(v_schicht) != 98, ((v_schicht - 1L) / 5L) * -1 + 1, NA)) %>%
+  
+  mutate(`class` = as_factor(v_schicht)) %>%
+  mutate(
+    `class` = recode(
+      `class`,
+      `Der Oberschicht` = "upper",
+      `Der oberen Mittelschicht` = "upper",
+      `Der Mittelschicht` = "middle",
+      `Der unteren Mittelschicht` = "lower",
+      `Der Arbeiterschicht` = "lower",
+      `Der Unterschicht` = "lower",
+      `Weiß nicht` = "dont't know / not available"
+    )
+  ) %>%
+  mutate(`class` = fct_na_value_to_level(`class`, level = "dont't know / not available")) %>%
+  
+  
+  mutate(
+    # issues triggering classism
+    soc = ifelse(v_issue_1_recoded %in% c("Armut/Obdachlosigkeit", "Klassismus", "Wohnen/Bau"), TRUE, FALSE), 
+    
+    # issues triggering sexism
+    gen = ifelse(v_issue_1_recoded %in% c("Gleichstellung"), TRUE, FALSE), 
+    
+    # issues triggering racism
+    div = ifelse(v_issue_1_recoded %in% c("Migration/Integration", "Extremismus", "Sozialer Zusammenhalt"), TRUE, FALSE) 
+  )
 ```
 
 ```{r set_options, include = FALSE}
@@ -41,20 +204,49 @@ set_flextable_defaults(pct_digits = "#")
 options("modelsummary_format_numeric_latex" = "plain")
 ```
 
-```{r make modified_table, echo = FALSE, results = "asis"}
-source("~/Lab/github/incivility/aux/kommrep_loc_lm.R")
-
-kommrep_loc %>% 
-  haven::write_dta(path = "~/Lab/github/incivility/dta/kommrep_loc_lm.dta")
+```{r path, echo = FALSE}
+wb_fname <- "~/Lab/github/incivility/xlsx/incivility.xlsx"
+db_final_fname <- "~/Data/hbs/db/HBS-Kontaktdatenbank_2022-07-21.xlsx"
 ```
 
 
-## Research design
+## Datenbericht
 
-### Table 1: Response Rate
+## Population of representatives contacted
+
+<!-- values computed from DB, different from report #1 -->
+
+```{r grundgesamtheit, echo = FALSE, fig.width = 8}
+db <- openxlsx::read.xlsx(xlsxFile = db_final_fname) %>% 
+  filter(!is.na(Name)) %>% 
+  unique()
+
+n_representatives <- db %>% 
+  nrow()
+
+n_representatives_nomail <- db %>% 
+  filter(is.na(Mailadresse)) %>% 
+  nrow()
+
+participants <- tibble(
+  `population (total)` = n_representatives,
+  `representatives no contact details` = sprintf(
+    "%d (%g per cent)",
+    n_representatives_nomail,
+    round(n_representatives_nomail / n_representatives * 100, 1)
+  )
+)
+
+flextable(participants) %>% width(width = 2)
+```
+
+
+
+\newpage
+
+## Rücklaufquote
 
 ```{r return_rate, echo = FALSE}
-db_final_fname <- "~/Data/hbs/db/HBS-Kontaktdatenbank_2022-07-21.xlsx"
 db <- openxlsx::read.xlsx(xlsxFile = db_final_fname) %>% 
   filter(!is.na(Name)) %>% 
   unique()
@@ -93,118 +285,38 @@ flextable(returned)
 
 \newpage
 
-## Section 4: Empirical Evidence
 
-### Figure 1: Prevalence of the implications for representation 
-
-```{r implications, echo = FALSE}
-kommrep_loc %>%
-  mutate(`behavior_considering exit?` = as.character(as_factor(v_exit))) %>%
-  mutate(`behavior_considering exit?` = recode(
-    `behavior_considering exit?`,
-    `Ja` = "yes",
-    `Nein` = "no",
-    "Weiß nicht" = "don't know / missing"
-  )) %>%
-  mutate(`behavior_considering exit?` = ifelse(
-    is.na(`behavior_considering exit?`),
-    "don't know / missing",
-    `behavior_considering exit?`
-  )) %>%
-  mutate(`behavior_avoid topics?` = as.character(as_factor(v_sorge_umgang4))) %>%
-  mutate(`behavior_avoid topics?` = recode(
-    `behavior_avoid topics?`,
-    `Ja` = "yes",
-    `Nicht Gewählt` = "no",
-    `Weiß nicht` = "don't know / missing"
-  )) %>%
-  mutate(`behavior_avoid topics?` = ifelse(
-    is.na(`behavior_avoid topics?`),
-    "don't know / missing",
-    `behavior_avoid topics?`
-  )) %>%
-  select(starts_with("behavior_"), weight_ps) %>%
-  pivot_longer(cols = starts_with("behavior")) %>%
-  mutate(name = gsub("^behavior_(.*?)$", "\\1", name)) %>%
-  group_by(name, value) %>%
-  summarise(n_weighed = sum(weight_ps), .groups = "rowwise") %>%
-  pivot_wider(names_from = value, values_from = n_weighed) %>%
-  mutate(true_percent = `yes` / (`yes` + `no` + `don't know / missing`)) %>%
-  mutate(false_percent = `no` / (`yes` + `no` + `don't know / missing`)) %>%
-  mutate(na_percent = `don't know / missing` / (`yes` + `no` + `don't know / missing`)) %>%
-  mutate(name = factor(name, levels = c("considering exit?", "avoid topics?"))) %>%
-  select(- `no`, -`yes`, -`don't know / missing`) %>%
-  rename(
-    `what` = "name",
-    `yes` = "true_percent",
-    `no` = "false_percent",
-    `don't know / missing` = "na_percent"
-  ) %>%
-  pivot_longer(cols = c("yes", "don't know / missing", "no")) %>%
-  mutate(name = factor(name, levels = c("no", "don't know / missing", "yes"))) %>%
-  ggplot(aes(x = what, y = value, fill = name)) +
-    geom_bar(stat = "identity", position = "stack") + 
-    geom_text(
-    aes(label = paste0(round(value * 100, 1), "%")),
-    position = position_stack(0.5),    # move to center of bars
-     size = 4, color = "white",
-    lineheight = 1
-    ) + 
-    xlab("Consequences of threats") + 
-    ylab("Share/percent (based on weighed cases)") +
-    theme(
-      legend.title = element_blank(),
-      axis.title = element_text(size = 12),
-      axis.text = element_text(size = 10)
-    ) +
-   scale_y_continuous(labels = scales::percent) +
-   scale_fill_manual(values = RColorBrewer::brewer.pal(6, "Blues")[3:5])
-
-ggsave("~/Lab/github/incivility/svg/behavioral_change.jpg", width = 24, height = 12, units = "cm")
-```
-
-\newpage
-
-```{r implications_old, echo = FALSE}
-kommrep_loc %>%
-  select(
-    v_sorge_umgang1, # 1 = Ich habe mein Verhalten nicht geändert
-    v_sorge_umgang2, # 2 = Ich bin gegenüber meiner Umgebung misstrauischer / vorsichtiger.
-    v_sorge_umgang3, # 3 = Ich verzichte (weitgehend) auf die Nutzung sozialer Medien
-    v_sorge_umgang4, # 4 = Ich äußere mich zu be- stimmten Themen seltener als früher
-    v_sorge_umgang5, # 5 = Ich meide bestimmte Orte oder Veranstaltungen
-    v_sorge_umgang6, # 6 = Ich habe meinen Wohnort geändert
-    weight_ps
-  ) %>%
-  pivot_longer(cols = starts_with("v_sorge_umgang")) %>%
-  group_by(name, value) %>%
-  summarise(n_weighed = sum(weight_ps)) %>%
-  filter(value == 1) %>%
-  mutate(share = round(n_weighed / sum(kommrep_loc$weight_ps) * 100, 1))
-```
-
-
-
-### Table: Plain Shares
+## Anteile UVs
 
 ```{r plain_shares, results = "asis", echo=FALSE}
 kommrep_loc_lm %>%
   select(
-    threat_verbal, threat_physical,
-    threat_verbal_bin, threat_physical_bin,
+    threat_verbal,
+    threat_physical,
+    threat_verbal_bin,
+    threat_physical_bin,
     female_diverse,
     class,
     racialized,
-    soc, gen, div,
+    soc,
+    gen,
+    div,
     weight_ps
   ) %>%
   select(-threat_verbal, -threat_physical) %>%
   
   mutate(class_lower = ifelse(class == "lower", TRUE, FALSE)) %>%
   
-  # select(-weight_ps) %>%
   mutate(across(everything(), as.vector)) %>%
-  pivot_longer(cols = c(threat_verbal_bin, threat_physical_bin, racialized, female_diverse, class_lower, div, gen, soc)) %>%
+  pivot_longer(
+    cols = c(
+      threat_verbal_bin,
+      threat_physical_bin,
+      racialized,
+      female_diverse,
+      class_lower # untere Mittelschächer und darunter
+    )
+  ) %>%
   group_by(name, value) %>%
   summarise(n = n(), n_weighed = sum(weight_ps), .groups = "rowwise") %>%
   select(-n) %>%
@@ -222,22 +334,21 @@ kommrep_loc_lm %>%
   select(-name) %>%
   mutate(variable = forcats::fct_recode(
     variable,
-    `Communicative threat` = "threat_verbal_bin",
-    `Physical threat` = "threat_physical_bin",
-    `Racialized group` = "racialized",
-    `Female or diverse` = "female_diverse",
-    `Class lower` = "class_lower",
-    `Primary Topic: Migration` = "div",
-    `Primary Topic: Gender` = "gen",
-    `Primary Topic: Class` = "soc"
+    `kommunikative Bedrohung` = "threat_verbal_bin",
+    `physische Bedrohung` = "threat_physical_bin",
+    `rassifizierte Gruppe` = "racialized",
+    `weiblich oder divers` = "female_diverse",
+    `niedrigere Schichtzugehörigkeit` = "class_lower"
   )) %>%
   mutate(
     variable = factor(
       variable,
       levels = c(
-        "Communicative threat", "Physical threat",
-        "Racialized group", "Female or diverse", "Class lower",
-        "Primary Topic: Migration", "Primary Topic: Gender", "Primary Topic: Class"
+        "kommunikative Bedrohung",
+        "physische Bedrohung",
+        "rassifizierte Gruppe",
+        "weiblich oder divers",
+        "niedrigere Schichtzugehörigkeit"
       )
     )
   ) %>%
@@ -250,14 +361,212 @@ kommrep_loc_lm %>%
   arrange(variable) %>%
   relocate(variable) %>% 
   as_flextable(show_coltype = FALSE) %>%
-  add_footer_lines("* Percent/shares calculated using case weights")
+  add_footer_lines("* Berechnung der Anteilswerte mit Gewichtung")
+```
+
+\newpage
+
+## Threat experiences
+
+```{r beleidigt, echo = FALSE, results = "asis"}
+kommrep_loc_min <- kommrep_loc %>%
+  select(v_bedrohung, v_geschlecht, v_mig_background, db_bundesland) %>%
+  mutate(threat = as_factor(v_bedrohung)) %>%
+  mutate(threat = recode(
+    threat,
+    `Weiß nicht` = "weiß nicht / keine Antwort",
+    `Ja` = "ja", `Nein` = "nein"
+    )
+  ) %>%
+  mutate(threat = replace_na(threat, "weiß nicht / keine Antwort"))
+  
+
+kommrep_loc_min %>% 
+  group_by(threat) %>%
+  summarise(N = n()) %>%
+  mutate(percent = N / sum(N)) %>%
+  ggplot(aes(x = threat, y = percent, label = N)) + 
+  geom_bar(stat = "identity") + 
+  geom_text(
+     position = position_dodge(width = .9),    # move to center of bars
+     vjust = -0.5,    # nudge above top of bar
+     size = 3
+  ) + 
+  scale_y_continuous(labels = scales::percent) +
+  xlab("Bedrohungserfahrung")
+```
+
+
+\newpage
+
+## Threat experiences by sex, class, migration background
+
+```{r, echo = FALSE}
+threatened1 <- kommrep_loc %>%
+  
+  select(
+    v_bedrohung,
+    v_geschlecht,
+    v_mig_background,
+    v_schicht
+  ) %>%
+  
+  mutate(`threat experience` = as_factor(v_bedrohung)) %>%
+  mutate(`threat experience` = recode(
+    `threat experience`,
+    `Weiß nicht` = "weiß nicht / keine Antwort",
+    `Ja` = "yes", `Nein` = "no"
+    )
+  ) %>%
+  mutate(
+    `threat experience` = replace_na(
+      `threat experience`,
+      "weiß nicht / keine Antwort")
+  ) %>%
+  
+  mutate(sex = as_factor(v_geschlecht)) %>%
+  mutate(sex = recode(
+    sex,
+    `divers` = "nonbinary",
+    `weitere / other` = "nonbinary",
+    `männlich` = "male", `weiblich` = "female",
+    `weitere / andere` = "other"
+  )) %>%
+  
+  mutate(`migration background` = ifelse(v_mig_background, "yes", "no")) %>%
+
+  mutate(class = as_factor(v_schicht)) %>%
+  mutate(
+    class = recode(
+      class,
+      `Der Oberschicht` = "hoch",
+      `Der oberen Mittelschicht` = "hoch",
+      `Der Mittelschicht` = "mittel",
+      `Der unteren Mittelschicht` = "niedrig",
+      `Der Arbeiterschicht` = "niedrig",
+      `Der Unterschicht` = "niedrig"
+    )) %>%
+  mutate(class = na_if(class, "Weiß nicht")) %>%
+  mutate(class = droplevels(class)) %>%
+  
+  select(`threat experience`, sex, `migration background`, class) %>%
+  mutate(across(everything(), as.vector)) %>%
+  crosstable(
+    by = `threat experience`,
+    total = "row",
+    percent_digits = 0,
+    showNA = "no",
+    percent_pattern = list(
+      body = "{n}\n({p_row})",
+      total_row = "{n}\n({p_row})",
+      total_col = "{n}\n({p_row})",
+      total_all = "{n}\n({p_row})"
+    )
+  )
+
+threatened1 %>% as_flextable(keep_id = FALSE, compact = FALSE)
+```
+
+
+\newpage
+
+## Bedrohungserfahrung nach Partei
+
+```{r threat_by_party, echo = FALSE, results = "asis", fig.width = 6}
+threatened6 <- kommrep_loc %>%
+  select(v_bedrohung, v_part1) %>%
+  mutate(`party` = as.character(as_factor(v_part1))) %>%
+  mutate(`threat experience` = as_factor(v_bedrohung)) %>%
+    mutate(`threat experience` = recode(
+    `threat experience`,
+    `Weiß nicht` = "don't know / no response",
+    `Ja` = "yes", `Nein` = "no"
+    )
+  ) %>%
+  mutate(
+    `threat experience` = replace_na(
+      `threat experience`,
+      "don't know / no response")
+  ) %>%
+  mutate(threat = as_factor(v_bedrohung)) %>%
+  select(`threat experience`, `party`) %>%
+  mutate(across(everything(), as.vector)) %>%
+  crosstable(
+    by = `threat experience`,
+    total = "none",
+    percent_digits = 1,
+    showNA = "no"
+  )
+
+threatened6 %>%
+  as_flextable(
+    keep_id = FALSE,
+    compact = TRUE,
+    fontsizes = list(body = 8, subheaders = 10, header = 10)
+  )
+```
+
+\newpage
+
+```{r threat_and_change, echo = FALSE}
+behavioral_change <- kommrep_loc %>%
+  select(
+    v_bedrohung,
+    v_sorge_umgang1
+  ) %>% # Verhaltensänderung? 1504 1=Ja!
+  filter(v_bedrohung != 98) %>%
+  mutate(`Verhaltensänderung` = ifelse(as.vector(v_sorge_umgang1) == 0L, "ja", "nein")) %>%
+  mutate(`Bedrohungserfahrung` = ifelse(as.vector(v_bedrohung) == 1L, "ja", "nein")) %>%
+  crosstable(
+    `Bedrohungserfahrung`, by = `Verhaltensänderung`,
+    percent_pattern = list(
+      body = "{p_row}\n({n})",
+      total_row = "{p_row}\n({n})",
+      total_col = "{p_row}\n({n})",
+      total_all = "{p_row}\n({n})"
+    ),
+    total = "both", percent_digits = 1)
+
+
+behavioral_change %>% as_flextable(keep_id = FALSE, compact = TRUE)
+```
+
+\newpage
+
+## Expected and experienced threats and behavioral change
+
+```{r threat_and_change1, echo = FALSE}
+behavioral_change <- kommrep_loc_lm %>%
+  select(threat_experience, threat_verbal, threat_physical, behavioral_change) %>% # Verhaltensänderung? 1504 1=Ja!
+  
+  mutate(`Bedrohungserfahrung` = ifelse(threat_experience, "yes", "no")) %>%
+  mutate(`kommunikative Bedrohung` = ifelse(threat_verbal > 0, "yes", "no")) %>% 
+  mutate(`physische Bedrohung` = ifelse(threat_physical > 0, "yes", "no")) %>% 
+           
+  mutate(`Verhaltensänderung` = ifelse(behavioral_change > 0, "yes", "no")) %>%
+  
+  select(`Bedrohungserfahrung`, `kommunikative Bedrohung`, `physische Bedrohung`, `Verhaltensänderung`) %>% 
+  crosstable(
+    by = `Verhaltensänderung`,
+    percent_digits = 1,
+    showNA = "no",
+    percent_pattern = list(
+      body = "{p_row}\n({n})",
+      total_row = "{p_row}\n({n})",
+      total_col = "{p_row}\n({n})",
+      total_all = "{p_row}\n({n})"
+    ),
+    total = "none",
+  )
+
+behavioral_change %>% as_flextable(keep_id = FALSE, compact = FALSE)
 ```
 
 \newpage
 
 ### Figure 2: Threat experience and implications for representation
 
-```{r threat_and_change3, echo = FALSE}
+```{r threat_and_change3b, echo = FALSE}
 threat_and_change <- kommrep_loc_lm %>%
 #  mutate(weight_ps = 1) %>%
   select(threat_verbal, threat_physical, muted2, stay, weight_ps) %>%
@@ -271,8 +580,10 @@ threat_and_change <- kommrep_loc_lm %>%
   mutate(`physical threat` = ifelse(is.na(`physical threat`), "no/missing", `physical threat`)) %>% 
   
   select(
-    `communicative threat`, `physical threat`,
-    `muted2`, `stay`,
+    `communicative threat`,
+    `physical threat`,
+    `muted2`,
+    `stay`,
     `weight_ps`
   )
 
@@ -352,7 +663,11 @@ chisq.test(m[1:2, 1:2]) # X-squared = 28.246, df = 1, p-value = 1.068e-07
 chisq.test(m[3:4, 1:2]) # X-squared = 23.077, df = 1, p-value = 1.557e-06
 chisq.test(m[1:2, 3:4]) # X-squared = 19.208, df = 1, p-value = 1.172e-05
 chisq.test(m[3:4, 3:4]) # X-squared = 7.2755, df = 1, p-value = 0.00699
+```
 
+\newpage
+
+```{r}
 table_data %>% 
   as_flextable(show_coltype = FALSE) %>%
   merge_at(i = 1:2, j = 1) %>%
@@ -379,7 +694,233 @@ table_data %>%
   add_footer_lines("* Value in brackets: Weighted number of cases")
 ```
 
+\newpage
 
+```{r threat_and_change2, echo = FALSE}
+threat_and_change <- kommrep_loc_lm %>%
+  select(threat_experience, threat_verbal, threat_physical, behavioral_change) %>% # Verhaltensänderung? 1504 1=Ja!
+  mutate(`threat experienced` = ifelse(threat_experience, "yes", "no")) %>%
+  mutate(`communicative threat` = ifelse(threat_verbal > 0, "yes", "no")) %>% 
+  mutate(`physical threat` = ifelse(threat_physical > 0, "yes", "no")) %>% 
+  mutate(`behavioral change` = ifelse(behavioral_change > 0, "yes", "no")) %>%
+  select(`threat experienced`, `communicative threat`, `physical threat`, `behavioral change`)
+
+
+lapply(
+  c("communicative threat", "physical threat", "threat experienced"),
+  function(threat){
+    select(threat_and_change, `behavioral change`, !!threat) %>%
+     group_by_all() %>%
+      summarise(N = n()) %>%
+      mutate(threat = !!threat) %>%
+      rename("value" = !!threat) %>%
+      filter(!is.na(value))
+  }
+) %>%
+  bind_rows() %>% 
+  filter(!is.na(value)) %>%
+  group_by(`threat`, `value`) %>%
+  group_split() %>%
+  lapply(function(x) mutate(x, share = x$N / sum(x$N))) %>%
+  bind_rows() %>%
+  mutate(percent = round(share * 100, 1)) %>%
+  ggplot(aes(x = `value`, y = percent, fill = `behavioral change`)) +
+    geom_bar(position = "stack", stat = "identity") +
+    facet_wrap(~ threat) +
+    geom_text(
+      aes(label = sprintf("%s\n[%s]", paste(percent, "%"), N)),
+      position = position_stack(0.5),
+      color = "white"
+    )
+
+ggsave("~/Lab/github/incivility/svg/threat_and_behavioral_change.svg", width = 24, height = 12, units = "cm")
+```
+
+\newpage
+
+```{r threat_and_change3, echo = FALSE}
+threat_and_change <- kommrep_loc_lm %>%
+  select(threat_verbal, threat_physical, v_sorge_umgang4, v_exit, weight_ps) %>%
+  
+  mutate(`communicative threat` = ifelse(threat_verbal > 0, "yes", "no")) %>% 
+  mutate(`communicative threat` = ifelse(is.na(`communicative threat`), "no", `communicative threat`)) %>% 
+  
+  mutate(`physical threat` = ifelse(threat_physical > 0, "yes", "no")) %>% 
+  mutate(`physical threat` = ifelse(is.na(`physical threat`), "no", `physical threat`)) %>% 
+  
+  mutate(`considering exit` = ifelse(as.character(as_factor(v_exit)) == "Ja", "yes", "no")) %>%
+  mutate(`considering exit` = ifelse(is.na(`considering exit`), "na", `considering exit`)) %>%
+  
+  mutate(`avoid topics` = ifelse(v_sorge_umgang4 == 1L, "yes", "no")) %>%
+  mutate(`avoid topics` = ifelse(is.na(`avoid topics`), "na", `avoid topics`)) %>%
+  
+  select(
+    `communicative threat`, `physical threat`,
+    `avoid topics`, `considering exit`,
+    `weight_ps`
+  )
+
+
+bind_rows(
+  list(
+    threat_and_change %>%
+      select(`considering exit`, `communicative threat`, weight_ps) %>%
+      group_by(`considering exit`, `communicative threat`) %>%
+      summarise(n_weighed = sum(weight_ps)) %>%
+      mutate(behavior = "considering exit") %>%
+      mutate(threat = "communicative threat") %>%
+      ungroup() %>%
+      mutate(percent = round(n_weighed / sum(n_weighed) * 100, 1)) %>%
+      rename(`behavioral effect` = "considering exit") %>%
+      rename(`threat applicable` = "communicative threat") %>%
+      select(-n_weighed),
+    
+    threat_and_change %>%
+      select(`considering exit`, `physical threat`, weight_ps) %>%
+      group_by(`considering exit`, `physical threat`) %>%
+      summarise(n_weighed = sum(weight_ps), .groups = "rowwise") %>%
+      mutate(behavior = "considering exit") %>%
+      mutate(threat = "physical threat") %>%
+      ungroup() %>%
+      mutate(percent = round(n_weighed / sum(n_weighed) * 100, 1)) %>%
+      rename(`behavioral effect` = "considering exit") %>%
+      rename(`threat applicable` = "physical threat") %>%
+      select(-n_weighed),
+    
+    threat_and_change %>%
+      select(`avoid topics`, `communicative threat`, weight_ps) %>%
+      group_by(`avoid topics`, `communicative threat`) %>%
+      summarise(n_weighed = sum(weight_ps), .groups = "rowwise") %>%
+      mutate(behavior = "avoid topics") %>%
+      mutate(threat = "communicative threat") %>%
+      ungroup() %>%
+      mutate(percent = round(n_weighed / sum(n_weighed) * 100, 1)) %>%
+      rename(`behavioral effect` = "avoid topics") %>%
+      rename(`threat applicable` = "communicative threat") %>%
+      select(-n_weighed),
+    
+    threat_and_change %>%
+      select(`avoid topics`, `physical threat`, weight_ps) %>%
+      group_by(`avoid topics`, `physical threat`) %>%
+      summarise(n_weighed = sum(weight_ps), .groups = "rowwise") %>%
+      mutate(behavior = "avoid topics") %>%
+      mutate(threat = "physical threat") %>%
+      ungroup() %>%
+      mutate(percent = round(n_weighed / sum(n_weighed) * 100, 1)) %>%
+      rename(`behavioral effect` = "avoid topics") %>%
+      rename(`threat applicable` = "physical threat") %>%
+      select(-n_weighed)
+  )
+) %>%
+  ggplot(aes(x = `threat applicable`, y = percent, fill = `behavioral effect`)) +
+    geom_bar(position = "stack", stat = "identity") +
+    facet_grid(behavior ~ threat) +
+    geom_text(
+      aes(label = paste(percent, "%")),
+      position = position_stack(0.5),
+      color = "white"
+    )
+
+ggsave("~/Lab/github/incivility/svg/threat_and_behavioral_change.svg", width = 24, height = 12, units = "cm")
+```
+
+
+\newpage
+
+**Tabelle 13: Behavioral Change by Group**
+
+```{r, echo = FALSE}
+change_who <- kommrep_loc %>%
+  
+  select(v_sorge_umgang1, v_geschlecht, v_mig_background, v_schicht) %>%
+  
+  mutate(`behavioral change` = ifelse(v_sorge_umgang1 == 0, "yes", "no")) %>%
+
+  mutate(sex = as_factor(v_geschlecht)) %>%
+  mutate(sex = recode(sex, `männlich` = "male", `weiblich` = "female", `divers` = "nonbinary", `weitere / andere` = "nonbinary")) %>%
+  
+  mutate(`migration background` = ifelse(v_mig_background, "yes", "no")) %>%
+
+  mutate(`class` = as_factor(v_schicht)) %>%
+  mutate(
+    `class` = recode(
+      `class`,
+      `Der Oberschicht` = "high",
+      `Der oberen Mittelschicht` = "high",
+      `Der Mittelschicht` = "medium",
+      `Der unteren Mittelschicht` = "low",
+      `Der Arbeiterschicht` = "low",
+      `Der Unterschicht` = "low"
+    )) %>%
+  mutate(`class` = na_if(`class`, "Weiß nicht")) %>%
+  mutate(`class` = droplevels(`class`)) %>%
+  
+  select(`behavioral change`, sex, `migration background`, `class`) %>%
+  mutate(across(everything(), as.vector)) %>%
+  crosstable(by = `behavioral change`, total = "none", percent_digits = 1, showNA = "no")
+
+change_who %>% as_flextable(keep_id = FALSE, compact = FALSE)
+```
+
+\newpage
+
+```{r, echo = FALSE}
+depvars <- c(
+  "stay", # certainty to stay = descriptive representation
+  "muted2" # substantive representation
+)
+
+ivars <- c(
+  threat_verbal = "Communicative threat",
+  threat_physical = "Physical threat", 
+  racialized = "Racialised group",
+  female_diverse = "Female or diverse",
+  class = "Class",
+  div = "Primary Topic: Migration", 
+  gen = "Primary Topic: Gender",
+  soc = "Primary Topic: Class"
+)
+
+bind_rows(
+  lapply(
+    names(ivars),
+    function(ivar){
+      lapply(
+        depvars,
+        function(depvar){
+          y <- cor.test(
+            x = as.numeric(kommrep_loc_lm[[ivar]]),
+            y = as.numeric(kommrep_loc_lm[[depvar]]),
+            method = "spearman",
+            alternative = "two.sided"
+          )
+          tibble(
+            ivar = ivar,
+            depvar = depvar,
+            rho = y$estimate,
+            p.value = y$p.value
+          )
+        }
+      )
+    }
+  )
+) %>%
+  mutate(stars = ifelse(p.value < .05, "*", "")) %>%
+  mutate(stars = ifelse(p.value < .01, "**", stars)) %>%
+  mutate(stars = ifelse(p.value < .001, "***", stars)) %>%
+  mutate(combined = paste0(round(rho, 2), stars)) %>%
+  select(`ivar`, depvar, combined) %>%
+  pivot_wider(names_from = "depvar", values_from = combined) %>%
+  mutate(ivar = ivars[ivar]) %>%
+  rename(
+    `certainty to stay` = "stay",
+    `avoid topics` = "muted2",
+    ` ` = "ivar"
+  ) %>%
+  as_flextable(show_coltype = FALSE) %>%
+  add_footer_lines("* p < 0.5, ** p > .01, *** p > .001")
+  
+```
 
 \newpage
 
@@ -513,6 +1054,7 @@ ggarrange(RACE, GENDER, CLASS, common.legend = TRUE, nrow = 1)
 ggsave("~/Lab/github/incivility/svg/considering_exit_by_group.jpg", width = 24, height = 12, units = "cm")
 ```
 
+\newpage
 
 ```{r chisq_exit}
 A <- matrix(c(1772.7 + 113.7, 155.9 + 16.7, 86.9, 18.1), ncol = 2, nrow = 2, byrow = TRUE)
@@ -689,6 +1231,8 @@ ggarrange(RACE, GENDER, CLASS, common.legend = TRUE, nrow = 1)
 ggsave("~/Lab/github/incivility/svg/avoiding_topics_by_group.jpg", width = 24, height = 12, units = "cm")
 ```
 
+\newpage
+
 ```{r}
 A <- matrix(c(394.4 + 1381.4, 38.9+130.6, 197.6, 21.1), ncol = 2, nrow = 2, byrow = TRUE)
 B <- matrix(c(222.8 + 960, 203.5+533.2, 104.6, 112.1), ncol = 2, nrow = 2, byrow = TRUE)
@@ -701,23 +1245,20 @@ chisq.test(C) # X-squared = 2.0975, df = 1, p-value = 0.1475
 
 \newpage
 
-## Table 1: Bivariate Correlations
+## Bivariate Korrelationen
 
 ```{r bivariate_correlations, echo = FALSE, warning = FALSE}
 depvars <- c(
-  "stay", # certainty to stay = descriptive representation
+  "exit", # Rückzugsgedanken = descriptive representation
   "muted2" # substantive representation
 )
 
 ivars <- c(
-  threat_verbal = "Communicative threat",
-  threat_physical = "Physical threat", 
-  racialized = "Racialised group",
-  female_diverse = "Female or diverse",
-  class_normalized = "Class",
-  div = "Primary Topic: Migration", 
-  gen = "Primary Topic: Gender",
-  soc = "Primary Topic: Class"
+  threat_verbal = "kommunikative Inzivilität",
+  threat_physical = "physische Inzivilität", 
+  racialized = "migrantisierte Gruppe",
+  female_diverse = "weiblich oder divers",
+  class_normalized = "niedrigere Schichtzugehörigkeit"
 )
 
 bind_rows(
@@ -767,69 +1308,56 @@ bind_rows(
   pivot_wider(names_from = "depvar", values_from = combined) %>%
   mutate(ivar = ivars[ivar]) %>%
   rename(
-    `certainty to stay` = "stay",
-    `avoid topics` = "muted2",
+    `Rückzugsgedanken` = "exit",
+    `Themenvermeidung` = "muted2",
     ` ` = "ivar"
   ) %>%
   as_flextable(show_coltype = FALSE) %>%
   add_footer_lines("* p < 0.5, ** p < .01, *** p < .001")
 ```
 
+
 \newpage
 
-### Table 2: Regression for Implications to descriptive Representation (Considering exit) 
-
 ```{r descriptive_representation, results = "asis", echo = FALSE}
-stay1 <- glm(
-  stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE,
+exit1 <- glm(
+  exit ~ threat_verbal + threat_physical,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
-stay2a <- glm(
-  stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + racialized,
+exit2 <- glm(
+  exit ~ threat_verbal + threat_physical +
+         female_diverse + class + racialized,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
-stay2b <- glm(
-  stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + racialized  + class_normalized,
-  data = kommrep_loc_lm,
-  family = binomial("logit")
-)
 
-stay2c <- glm(
-  stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class_normalized + racialized,
-  data = kommrep_loc_lm,
-  family = binomial("logit")
-)
-
-stay3 <- glm(
-  stay ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class_normalized + racialized + soc + gen + div,
+exit3 <- glm(
+  exit ~ threat_verbal + threat_physical +
+         female_diverse + class + racialized +
+         age +
+         AfD + SPD + GRUENE + LINKE,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
 modelsummary::modelsummary(
   models = list(
-    A = stay1,
-    B = stay2a,
-    C = stay2b,
-    D = stay2c,
-    E = stay3
+    A = exit1,
+    B = exit2,
+    C = exit3
   ),
   estimate = "{estimate} ({std.error}){stars}",
   statistic = NULL,
   output = "latex",
   coef_map = c(
-    "threat_verbal" = "Communicative threat ",
-    "threat_physical" = "Physical threat",
-    "racializedTRUE" = "Racialized group (Ref. no)",
-    "female_diverseTRUE" = "Female or diverse (Ref. no)",
-    "class_normalized" = "Class",
-    "divTRUE" = "Primary Topic: Migration",
-    "genTRUE" = "Primary Topic: Gender",
-    "socTRUE" = "Primary Topic: Class",
+    "threat_verbal" = "kommunikative Inzivilität",
+    "threat_physical" = "physische Inzivilität",
+    "racializedTRUE" = "migrantisierte Gruppe (Ref. nein)",
+    "female_diverseTRUE" = "weiblich oder divers (Ref. nein)",
+    "class" = "niedrigere Schichtzugehörigkeit",
     "AfDTRUE" = "AfD (Ref. other)",
     "SPDTRUE" = "SPD",
     "GRUENETRUE" = "B'90/Grüne",
@@ -838,40 +1366,40 @@ modelsummary::modelsummary(
     "(Intercept)" = "(Intercept)"
   ),
   stars = c('*' = .05, '**' = .01, '***' = .001),
-  title = "Descriptive representation: Determinants of certainty to stay"
+  title = "Deskriptive Repräsentation: Rückzugsgedanken"
   # , gof_omit = "BIC|AIC|RMSE|Log.Lik|F"
 )
 ```
 
 \newpage
 
-### Table 3: Regression for Implications to substantive Representation (Avoid topics) 
-
 ```{r, results = "asis", echo = FALSE}
 behavior1 <- glm(
-  muted2 ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE,
+  muted2 ~ threat_verbal + threat_physical,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
 behavior2 <- glm(
-  muted2 ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class_normalized + racialized,
+  muted2 ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
 behavior3 <- glm(
-  muted2 ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class_normalized + racialized + soc + gen + div,
+  muted2 ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class,
+  data = kommrep_loc_lm,
+  family = binomial("logit")
+)
+
+behavior4 <- glm(
+  muted2 ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
 modelsummary::modelsummary(
-  models = list(
-    A = behavior1,
-    B = behavior2,
-    C = behavior3
-  ),
+  models = list(A = behavior1, B = behavior2, C = behavior3, D = behavior4),
   estimate = "{estimate} ({std.error}){stars}",
   statistic = NULL,
   output = "latex",
@@ -880,10 +1408,7 @@ modelsummary::modelsummary(
     "threat_physical" = "Physical threat",
     "racializedTRUE" = "Racialized group (Ref. no)",
     "female_diverseTRUE" = "Female or diverse (Ref. no)",
-    "class_normalized" = "Class",
-    "divTRUE" = "Primary Topic: Migration",
-    "genTRUE" = "Primary Topic: Gender",
-    "socTRUE" = "Primary Topic: Class",
+    "class" = "Class",
     "AfDTRUE" = "AfD (Ref. other)",
     "SPDTRUE" = "SPD",
     "GRUENETRUE" = "B'90/Grüne",
@@ -892,7 +1417,73 @@ modelsummary::modelsummary(
     "(Intercept)" = "(Intercept)"
   ),
   stars = c('*' = .05, '**' = .01, '***' = .001),
-  title = "Substantive representation: Avoid topics"
+  title = "Regression results: Muted substantial representation"
 #  , gof_omit = "BIC|AIC|RMSE|Log.Lik|F"
 )
+```
+
+
+\newpage
+
+
+## Anhänge
+
+### Rücklaufquote nach Parteien
+
+```{r participation_by_party, echo = FALSE, results = "asis"}
+mailed_by_party <- city_party %>%
+  ungroup() %>%
+  select(-Stadt) %>%
+  mutate(other = TOTAL - (AfD + `Bündnis 90/Die Grünen` + CDU + CSU + `Die Linke` + FDP + Piratenpartei + SPD)) %>%
+  pivot_longer(everything()) %>%
+  mutate(party = recode(name, `Piratenpartei` = "other")) %>%
+  select(-name) %>%
+  group_by(party) %>%
+  summarise(total = sum(value))
+
+returned_by_party <- kommrep_loc %>%
+  mutate(party = as.character(as_factor(v_part1))) %>%
+  mutate(party = replace_na(party, "other")) %>%
+  mutate(party = recode(
+    party,
+    `Unabhängige Kandidatur, keine Partei/Wählerliste` = "other",
+    `Piratenpartei` = "other",
+    `Freie Wähler` = "other"
+  )) %>%
+  group_by(party) %>%
+  summarise(participants = n()) %>%
+  bind_rows(tibble(party = "TOTAL", participants = sum(.$participants))) %>%
+  left_join(mailed_by_party, by = "party") %>%
+  mutate(rate = round(participants / total * 100, digits = 2L)) %>% 
+  mutate(dummy = 0) %>%
+  mutate(dummy = ifelse(party == "other", 1L, 0L)) %>%
+  mutate(dummy = ifelse(party == "TOTAL", 2L, dummy)) %>%
+  arrange(dummy) %>%
+  select(-dummy)
+
+returned_by_party %>%
+  flextable() %>%
+  autofit() %>%
+  hline(i = 7, border = officer::fp_border(style = "dotted")) %>%
+  hline(i = 8)
+```
+
+
+
+```{r participation_by_party_plot, echo = FALSE}
+returned_by_party %>%
+  filter(party != "TOTAL") %>% 
+  mutate(party = factor(party, levels = party[order(rate, decreasing = TRUE)])) %>%
+  ggplot(aes(x = party, y = rate)) + 
+  geom_bar(stat = "identity", fill = "cadetblue3") +
+  xlab("Party") +
+  ylab("Return Rate") +
+  ylim(0,68) +
+  geom_text(
+    aes(label = sprintf("%s\n(%s/%s)", paste(round(rate, 1), "%"), participants, total)),
+    vjust = -0.5,
+    color = "black"
+  )
+
+ggsave("~/Lab/github/incivility/svg/return_rate_party.svg", width = 24, height = 12, units = "cm")
 ```
