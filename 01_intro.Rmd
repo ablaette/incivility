@@ -5,7 +5,6 @@ date: "`r Sys.Date()`"
 output:
   pdf_document:
     latex_engine: xelatex
-classoption: landscape
 bibliography: literatur.bibtex
 always_allow_html: yes
 editor_options:
@@ -186,6 +185,9 @@ kommrep_loc_lm <- kommrep_loc %>%
   ) %>%
   mutate(`class` = fct_na_value_to_level(`class`, level = "dont't know / not available")) %>%
   
+  mutate(class_num = as.vector(v_schicht)) %>% 
+  mutate(class_num = ifelse(class_num > 6, NA, class_num)) %>% 
+  mutate(class_num = (class_num - 1) / 5) %>% 
   
   mutate(
     # issues triggering classism
@@ -1319,6 +1321,8 @@ bind_rows(
 
 \newpage
 
+##
+
 ```{r descriptive_representation, results = "asis", echo = FALSE}
 exit1 <- glm(
   exit ~ threat_verbal + threat_physical,
@@ -1328,7 +1332,7 @@ exit1 <- glm(
 
 exit2 <- glm(
   exit ~ threat_verbal + threat_physical +
-         female_diverse + class + racialized,
+         female_diverse + class_num + racialized,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
@@ -1336,7 +1340,7 @@ exit2 <- glm(
 
 exit3 <- glm(
   exit ~ threat_verbal + threat_physical +
-         female_diverse + class + racialized +
+         female_diverse + class_num + racialized +
          age +
          AfD + SPD + GRUENE + LINKE,
   data = kommrep_loc_lm,
@@ -1357,7 +1361,7 @@ modelsummary::modelsummary(
     "threat_physical" = "physische Inzivilität",
     "racializedTRUE" = "migrantisierte Gruppe (Ref. nein)",
     "female_diverseTRUE" = "weiblich oder divers (Ref. nein)",
-    "class" = "niedrigere Schichtzugehörigkeit",
+    "class_num" = "Schichtzugehörigkeit",
     "AfDTRUE" = "AfD (Ref. other)",
     "SPDTRUE" = "SPD",
     "GRUENETRUE" = "B'90/Grüne",
@@ -1373,6 +1377,8 @@ modelsummary::modelsummary(
 
 \newpage
 
+##
+
 ```{r, results = "asis", echo = FALSE}
 behavior1 <- glm(
   muted2 ~ threat_verbal + threat_physical,
@@ -1381,34 +1387,32 @@ behavior1 <- glm(
 )
 
 behavior2 <- glm(
-  muted2 ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE,
+  muted2 ~ threat_verbal + threat_physical +
+         female_diverse + class_num + racialized,,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
 behavior3 <- glm(
-  muted2 ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class,
-  data = kommrep_loc_lm,
-  family = binomial("logit")
-)
-
-behavior4 <- glm(
-  muted2 ~ threat_verbal + threat_physical + age + AfD + SPD + GRUENE + LINKE + female_diverse + class + racialized,
+  muted2 ~ threat_verbal + threat_physical +
+         female_diverse + class_num + racialized +
+         age +
+         AfD + SPD + GRUENE + LINKE,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
 modelsummary::modelsummary(
-  models = list(A = behavior1, B = behavior2, C = behavior3, D = behavior4),
+  models = list(A = behavior1, B = behavior2, C = behavior3),
   estimate = "{estimate} ({std.error}){stars}",
   statistic = NULL,
   output = "latex",
   coef_map = c(
-    "threat_verbal" = "Communicative threat",
-    "threat_physical" = "Physical threat",
-    "racializedTRUE" = "Racialized group (Ref. no)",
-    "female_diverseTRUE" = "Female or diverse (Ref. no)",
-    "class" = "Class",
+    "threat_verbal" = "kommunikative Inzivilität",
+    "threat_physical" = "physische Inzivilität",
+    "racializedTRUE" = "migrantisierte Gruppe (Ref. nein)",
+    "female_diverseTRUE" = "weiblich oder divers (Ref. nein)",
+    "class_num" = "Schichtzugehörigkeit",
     "AfDTRUE" = "AfD (Ref. other)",
     "SPDTRUE" = "SPD",
     "GRUENETRUE" = "B'90/Grüne",
@@ -1417,14 +1421,13 @@ modelsummary::modelsummary(
     "(Intercept)" = "(Intercept)"
   ),
   stars = c('*' = .05, '**' = .01, '***' = .001),
-  title = "Regression results: Muted substantial representation"
+  title = "Regression: Themenvermeidung"
 #  , gof_omit = "BIC|AIC|RMSE|Log.Lik|F"
 )
 ```
 
 
 \newpage
-
 
 ## Anhänge
 
