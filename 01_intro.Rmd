@@ -202,18 +202,7 @@ kommrep_loc_lm <- kommrep_loc %>%
   
   mutate(class_num = as.vector(v_schicht)) %>% 
   mutate(class_num = ifelse(class_num > 6, NA, class_num)) %>% 
-  mutate(class_num = (class_num - 1) / 5) %>% 
-  
-  mutate(
-    # issues triggering classism
-    soc = ifelse(v_issue_1_recoded %in% c("Armut/Obdachlosigkeit", "Klassismus", "Wohnen/Bau"), TRUE, FALSE), 
-    
-    # issues triggering sexism
-    gen = ifelse(v_issue_1_recoded %in% c("Gleichstellung"), TRUE, FALSE), 
-    
-    # issues triggering racism
-    div = ifelse(v_issue_1_recoded %in% c("Migration/Integration", "Extremismus", "Sozialer Zusammenhalt"), TRUE, FALSE) 
-  )
+  mutate(class_num = (class_num - 1) / 5)
 ```
 
 ```{r set_options, include = FALSE}
@@ -388,7 +377,7 @@ kommrep_loc %>%
       )
     )
 
-# ggsave("~/Lab/github/incivility/svg/threat_and_behavioral_change.svg", width = 24, height = 12, units = "cm")
+ggsave("~/Lab/github/incivility/svg/incivility_and_representation.svg", width = 24, height = 12, units = "cm")
 ```
 
 
@@ -474,7 +463,7 @@ kommrep_loc %>%
       size = 3
     )
 
-# ggsave("~/Lab/github/incivility/svg/threat_and_behavioral_change.svg", width = 24, height = 12, units = "cm")
+ggsave("~/Lab/github/incivility/svg/groups_and_representation.svg", width = 24, height = 12, units = "cm")
 ```
 
 
@@ -483,28 +472,52 @@ kommrep_loc %>%
 ##
 
 ```{r descriptive_representation, results = "asis", echo = FALSE}
+# exit1 <- glm(
+#   exit ~ threat_verbal + threat_physical,
+#   data = kommrep_loc_lm,
+#   family = binomial("logit")
+# )
+
 exit1 <- glm(
-  exit ~ threat_verbal + threat_physical,
+  Rückzugsgedanke ~ `kommunikative Inzivilität` + `physische Inzivilität`,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
+
+# exit2 <- glm(
+#   exit ~ threat_verbal + threat_physical +
+#          female_diverse + class_num + racialized,
+#   data = kommrep_loc_lm,
+#   family = binomial("logit")
+# )
+
 exit2 <- glm(
-  exit ~ threat_verbal + threat_physical +
+  Rückzugsgedanke ~ `kommunikative Inzivilität` + `physische Inzivilität` +
          female_diverse + class_num + racialized,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
 
+# exit3 <- glm(
+#   exit ~ threat_verbal + threat_physical +
+#          female_diverse + class_num + racialized +
+#          age +
+#          AfD + SPD + GRUENE + LINKE,
+#   data = kommrep_loc_lm,
+#   family = binomial("logit")
+# )
+
 exit3 <- glm(
-  exit ~ threat_verbal + threat_physical +
+  Rückzugsgedanke ~ `kommunikative Inzivilität` + `physische Inzivilität` +
          female_diverse + class_num + racialized +
          age +
          AfD + SPD + GRUENE + LINKE,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
+
 
 modelsummary::modelsummary(
   models = list(
@@ -516,8 +529,10 @@ modelsummary::modelsummary(
   statistic = NULL,
   output = "latex",
   coef_map = c(
-    "threat_verbal" = "kommunikative Inzivilität",
-    "threat_physical" = "physische Inzivilität",
+    "kommunikative InzivilitätTRUE" = "kommunikative Inzivilität",
+    "physische InzivilitätTRUE" = "physische Inzivilität",
+    # "threat_verbal" = "kommunikative Inzivilität",
+    # "threat_physical" = "physische Inzivilität",
     "racializedTRUE" = "migrantisierte Gruppe (Ref. nein)",
     "female_diverseTRUE" = "weiblich oder divers (Ref. nein)",
     "class_num" = "Schichtzugehörigkeit",
@@ -529,7 +544,7 @@ modelsummary::modelsummary(
     "(Intercept)" = "(Intercept)"
   ),
   stars = c('*' = .05, '**' = .01, '***' = .001),
-  title = "Deskriptive Repräsentation: Rückzugsgedanken"
+  title = "Effekte von Inzivilität auf deskriptive Repräsentation: Rückzugsgedanken"
   # , gof_omit = "BIC|AIC|RMSE|Log.Lik|F"
 )
 ```
@@ -540,20 +555,20 @@ modelsummary::modelsummary(
 
 ```{r, results = "asis", echo = FALSE}
 behavior1 <- glm(
-  muted2 ~ threat_verbal + threat_physical,
+  Themenvermeidung ~ `kommunikative Inzivilität` + `physische Inzivilität`,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
 behavior2 <- glm(
-  muted2 ~ threat_verbal + threat_physical +
+  Themenvermeidung ~ `kommunikative Inzivilität` + `physische Inzivilität` +
          female_diverse + class_num + racialized,,
   data = kommrep_loc_lm,
   family = binomial("logit")
 )
 
 behavior3 <- glm(
-  muted2 ~ threat_verbal + threat_physical +
+  Themenvermeidung ~ `kommunikative Inzivilität` + `physische Inzivilität` +
          female_diverse + class_num + racialized +
          age +
          AfD + SPD + GRUENE + LINKE,
@@ -567,8 +582,8 @@ modelsummary::modelsummary(
   statistic = NULL,
   output = "latex",
   coef_map = c(
-    "threat_verbal" = "kommunikative Inzivilität",
-    "threat_physical" = "physische Inzivilität",
+    "kommunikative InzivilitätTRUE" = "kommunikative Inzivilität",
+    "physische InzivilitätTRUE" = "physische Inzivilität",
     "racializedTRUE" = "migrantisierte Gruppe (Ref. nein)",
     "female_diverseTRUE" = "weiblich oder divers (Ref. nein)",
     "class_num" = "Schichtzugehörigkeit",
@@ -580,7 +595,7 @@ modelsummary::modelsummary(
     "(Intercept)" = "(Intercept)"
   ),
   stars = c('*' = .05, '**' = .01, '***' = .001),
-  title = "Regression: Themenvermeidung"
+  title = "Effekte von Inzivilität auf substantielle Repräsentation: Themenvermeidung"
 #  , gof_omit = "BIC|AIC|RMSE|Log.Lik|F"
 )
 ```
