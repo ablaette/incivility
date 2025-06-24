@@ -81,7 +81,7 @@ threat_physical_index <- lapply(
   # v_perzb_art3 = Art der der Bedrohung: direkter Begegnung
   # v_perzb_art4 = Art der der Bedrohung: Sachbeschädigung
   # v_perzb_art5 = Art der der Bedrohung: Körperlich bedrängt oder angegriffen
-  paste0("v_perzb_art", 3:5),
+  paste0("v_perzb_art", 4:5),
   function(var){
     x <- as.vector(kommrep_loc[[var]])
     x <- ifelse(x == 98, NA, x)
@@ -106,7 +106,7 @@ kommrep_loc_lm <- kommrep_loc %>%
     `kommunikative Inzivilität`)
   ) %>% 
   
-  mutate(threat_physical = threat_physical_index / 3) %>% 
+  mutate(threat_physical = threat_physical_index / 2) %>% 
   mutate(threat_physical_bin = ifelse(threat_physical > 0, TRUE, FALSE)) %>%
   mutate(`physische Inzivilität` = ifelse(threat_physical > 0, TRUE, FALSE)) %>% 
   mutate(`physische Inzivilität` = ifelse(
@@ -468,7 +468,7 @@ kommrep_loc_lm_min <- kommrep_loc_lm %>%
   filter(threat_experience == TRUE)
 
 exit1 <- glm(
-  Rückzugsgedanke ~ `kommunikative Inzivilität` + threat_physical,
+  Rückzugsgedanke ~ `kommunikative Inzivilität` + threat_physical_bin,
   # Rückzugsgedanke ~ threat_verbal + threat_physical,
   # Rückzugsgedanke ~ `kommunikative Inzivilität` + `physische Inzivilität`,
   data = kommrep_loc_lm_min,
@@ -477,7 +477,7 @@ exit1 <- glm(
 
 exit2 <- glm(
   # Rückzugsgedanke ~ `kommunikative Inzivilität` + threat_physical_bin +
-  Rückzugsgedanke ~ `kommunikative Inzivilität` + threat_physical +
+  Rückzugsgedanke ~ `kommunikative Inzivilität` + threat_physical_bin +
   # Rückzugsgedanke ~ `kommunikative Inzivilität` + `physische Inzivilität` +
          female_diverse + class_num + racialized,
   data = kommrep_loc_lm_min,
@@ -486,7 +486,7 @@ exit2 <- glm(
 
 exit3 <- glm(
   # Rückzugsgedanke ~ `kommunikative Inzivilität` + threat_physical_bin +
-  Rückzugsgedanke ~ `kommunikative Inzivilität` + threat_physical +
+  Rückzugsgedanke ~ `kommunikative Inzivilität` + threat_physical_bin +
   # Rückzugsgedanke ~ `kommunikative Inzivilität` + `physische Inzivilität` +
          female_diverse + class_num + racialized +
          age +
@@ -508,7 +508,7 @@ modelsummary::modelsummary(
     "kommunikative InzivilitätTRUE" = "kommunikative Inzivilität",
     # "physische InzivilitätTRUE" = "physische Inzivilität",
     # "threat_verbal" = "kommunikative Inzivilität",
-    "threat_physical" = "physische Inzivilität",
+    "threat_physical_binTRUE" = "physische Inzivilität",
     "racializedTRUE" = "migrantisierte Gruppe (Ref. nein)",
     "female_diverseTRUE" = "weiblich oder divers (Ref. nein)",
     "class_num" = "Schichtzugehörigkeit",
