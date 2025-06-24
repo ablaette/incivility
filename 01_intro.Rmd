@@ -78,6 +78,9 @@ threat_comm_index <- lapply(
   apply(1, function(row) if (all(is.na(row))) NA else sum(row, na.rm = TRUE))
 
 threat_physical_index <- lapply(
+  # v_perzb_art3 = Art der der Bedrohung: direkter Begegnung
+  # v_perzb_art4 = Art der der Bedrohung: Sachbeschädigung
+  # v_perzb_art5 = Art der der Bedrohung: Körperlich bedrängt oder angegriffen
   paste0("v_perzb_art", 3:5),
   function(var){
     x <- as.vector(kommrep_loc[[var]])
@@ -93,11 +96,24 @@ threat_physical_index <- lapply(
 
 kommrep_loc_lm <- kommrep_loc %>%
   
+
   mutate(threat_verbal = threat_comm_index / 2) %>% 
-  mutate(threat_physical = threat_physical_index / 3) %>% 
-  
   mutate(threat_verbal_bin = ifelse(threat_verbal > 0, TRUE, FALSE)) %>%
+  mutate(`kommunikative Inzivilität` = ifelse(threat_verbal > 0, TRUE, FALSE)) %>% 
+  mutate(`kommunikative Inzivilität` = ifelse(
+    is.na(`kommunikative Inzivilität`),
+    FALSE,
+    `kommunikative Inzivilität`)
+  ) %>% 
+  
+  mutate(threat_physical = threat_physical_index / 3) %>% 
   mutate(threat_physical_bin = ifelse(threat_physical > 0, TRUE, FALSE)) %>%
+  mutate(`physische Inzivilität` = ifelse(threat_physical > 0, TRUE, FALSE)) %>% 
+  mutate(`physische Inzivilität` = ifelse(
+    is.na(`physische Inzivilität`),
+    FALSE,
+    `physische Inzivilität`)
+  ) %>% 
 
   mutate(threat_experience = ifelse(as.vector(v_bedrohung) == 1L, TRUE, FALSE)) %>% 
 
@@ -139,18 +155,13 @@ kommrep_loc_lm <- kommrep_loc %>%
   mutate(racialized = asian | jewish | muslim | sintiroma | turkish | eastern | black) %>% 
   
   # Exit / Rückzugsgedanken (für deskriptive Repräsentation)
-  mutate(Rückzugsgedanke = ifelse(as.character(as_factor(v_exit)) == "Ja", TRUE, FALSE)) %>%
+  mutate(v_exit = ifelse(v_exit == 98, NA, v_exit)) %>% 
+  mutate(Rückzugsgedanke = ifelse(v_exit == 1, TRUE, FALSE)) %>%
   mutate(Rückzugsgedanke = ifelse(is.na(Rückzugsgedanke), FALSE, Rückzugsgedanke)) %>%
 
   # Themenvermeidung (für substantielle Repräsentation)
   mutate(Themenvermeidung = ifelse(v_sorge_umgang4 == 1L, TRUE, FALSE)) %>%
   mutate(Themenvermeidung = ifelse(is.na(Themenvermeidung), FALSE, Themenvermeidung)) %>% 
-
-  mutate(`kommunikative Inzivilität` = ifelse(threat_verbal > 0, TRUE, FALSE)) %>% 
-  mutate(`kommunikative Inzivilität` = ifelse(is.na(`kommunikative Inzivilität`), FALSE, `kommunikative Inzivilität`)) %>% 
-  
-  mutate(`physische Inzivilität` = ifelse(threat_physical > 0, TRUE, FALSE)) %>% 
-  mutate(`physische Inzivilität` = ifelse(is.na(`physische Inzivilität`), FALSE, `physische Inzivilität`)) %>% 
 
   mutate(female_diverse = as_factor(v_geschlecht)) %>% 
   mutate(female_diverse = recode(
@@ -453,28 +464,36 @@ ggsave("~/Lab/github/incivility/svg/groups_and_representation.svg", width = 24, 
 ##
 
 ```{r descriptive_representation, results = "asis", echo = FALSE}
+kommrep_loc_lm_min <- kommrep_loc_lm %>% 
+  filter(threat_experience == TRUE)
+
 exit1 <- glm(
-  Rückzugsgedanke ~ `kommunikative Inzivilität` + `physische Inzivilität`,
-  data = kommrep_loc_lm,
+  Rückzugsgedanke ~ `kommunikative Inzivilität` + threat_physical,
+  # Rückzugsgedanke ~ threat_verbal + threat_physical,
+  # Rückzugsgedanke ~ `kommunikative Inzivilität` + `physische Inzivilität`,
+  data = kommrep_loc_lm_min,
   family = binomial("logit")
 )
 
 exit2 <- glm(
-  Rückzugsgedanke ~ `kommunikative Inzivilität` + `physische Inzivilität` +
+  # Rückzugsgedanke ~ `kommunikative Inzivilität` + threat_physical_bin +
+  Rückzugsgedanke ~ `kommunikative Inzivilität` + threat_physical +
+  # Rückzugsgedanke ~ `kommunikative Inzivilität` + `physische Inzivilität` +
          female_diverse + class_num + racialized,
-  data = kommrep_loc_lm,
+  data = kommrep_loc_lm_min,
   family = binomial("logit")
 )
 
 exit3 <- glm(
-  Rückzugsgedanke ~ `kommunikative Inzivilität` + `physische Inzivilität` +
+  # Rückzugsgedanke ~ `kommunikative Inzivilität` + threat_physical_bin +
+  Rückzugsgedanke ~ `kommunikative Inzivilität` + threat_physical +
+  # Rückzugsgedanke ~ `kommunikative Inzivilität` + `physische Inzivilität` +
          female_diverse + class_num + racialized +
          age +
          AfD + SPD + GRUENE + LINKE,
-  data = kommrep_loc_lm,
+  data = kommrep_loc_lm_min,
   family = binomial("logit")
 )
-
 
 modelsummary::modelsummary(
   models = list(
@@ -487,9 +506,9 @@ modelsummary::modelsummary(
   output = "latex",
   coef_map = c(
     "kommunikative InzivilitätTRUE" = "kommunikative Inzivilität",
-    "physische InzivilitätTRUE" = "physische Inzivilität",
+    # "physische InzivilitätTRUE" = "physische Inzivilität",
     # "threat_verbal" = "kommunikative Inzivilität",
-    # "threat_physical" = "physische Inzivilität",
+    "threat_physical" = "physische Inzivilität",
     "racializedTRUE" = "migrantisierte Gruppe (Ref. nein)",
     "female_diverseTRUE" = "weiblich oder divers (Ref. nein)",
     "class_num" = "Schichtzugehörigkeit",
