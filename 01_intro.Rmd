@@ -46,8 +46,8 @@ kommrep_loc_lm <- kommrep_loc %>%
   mutate(across(v_perzb_art1:v_perzb_art5, ~ . - 1)) %>% 
   mutate(across(v_perzb_art1:v_perzb_art5, ~ as.logical(.))) %>% 
   rowwise() %>% 
-  mutate(`kommunikative Inzivilität` = any(c_across(v_perzb_art1:v_perzb_art3), na.rm = TRUE)) %>% 
-  mutate(`physische Inzivilität` = any(c_across(v_perzb_art4:v_perzb_art5), na.rm = TRUE)) %>% 
+  mutate(`kommunikative Inzivilität` = any(c_across(v_perzb_art1:v_perzb_art2), na.rm = TRUE)) %>% 
+  mutate(`physische Inzivilität` = any(c_across(v_perzb_art3:v_perzb_art5), na.rm = TRUE)) %>% 
   ungroup() %>% 
 
   mutate(threat_experience = ifelse(as.vector(v_bedrohung) == 1L, TRUE, FALSE)) %>% 
@@ -497,6 +497,52 @@ ggsave("~/Lab/github/incivility/svg/incivility_and_representation.svg", width = 
 ggsave("~/Lab/github/incivility/svg/groups_and_representation.svg", width = 24, height = 12, units = "cm")
 ```
 
+\newpage
+
+```{r}
+parties <- c("AfD", "CDU", "CSU", "FDP", "SPD", "Bündnis 90/Die Grünen", "Die Linke")
+
+lapply(
+  c("Rückzugsgedanke", "Themenvermeidung"),
+  function(effect){
+    kommrep_loc_lm %>% 
+      select(
+        all_of(effect),
+        party,
+        weight_ps
+      ) %>% 
+      group_by(party) %>% 
+      summarise(
+        share = sum(!!sym(effect) * weight_ps) / sum(weight_ps),
+        N = n()
+      ) %>% 
+      mutate(effect = effect)
+  }
+) %>% 
+  bind_rows() %>% 
+  filter(party %in% parties) %>% 
+  mutate(party = factor(party, levels = parties)) %>% 
+  mutate(party = fct_recode(
+    party,
+    `Grüne` = "Bündnis 90/Die Grünen",
+    `Linke` = "Die Linke"
+  )) %>% 
+  ggplot(aes(x = party, y = share)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  geom_text(
+    aes(label = sprintf("%s\nN=%d", paste(round(share * 100, 1), "%"), N)),
+    position = position_stack(0.5),
+    color = "white",
+    size = 2
+    
+  ) +
+  scale_y_continuous(labels = scales::label_percent()) +
+  facet_grid(~ effect) + 
+  ylab("prozentualer Anteil") +
+  xlab(element_blank())
+
+
+```
 
 \newpage
 
