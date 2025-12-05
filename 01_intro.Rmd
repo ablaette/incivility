@@ -35,7 +35,7 @@ library(kableExtra)
 ```
 
 ```{r check_kommrep_version, echo = FALSE}
-stopifnot(packageVersion("kommrep") >= package_version("0.4.6"))
+stopifnot(packageVersion("kommrep") >= package_version("0.4.7"))
 ```
 
 ```{r make modified_table, echo = FALSE, results = "asis"}
