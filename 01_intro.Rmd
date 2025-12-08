@@ -137,25 +137,102 @@ options("modelsummary_format_numeric_latex" = "plain")
 ```
 
 
+### Folgerungen aus Inzivilität
+
+```{r implications, echo = FALSE}
+kommrep_loc %>%
+  mutate(`behavior_Rückzugsgedanken` = as.character(as_factor(v_exit))) %>%
+  mutate(`behavior_Rückzugsgedanken` = recode(
+    `behavior_Rückzugsgedanken`,
+    `Ja` = "Ja",
+    `Nein` = "Nein",
+    "Weiß nicht" = "weiß nicht / k.A."
+  )) %>%
+  mutate(`behavior_Rückzugsgedanken` = ifelse(
+    is.na(`behavior_Rückzugsgedanken`),
+    "weiß nicht / k.A.",
+    `behavior_Rückzugsgedanken`
+  )) %>%
+  mutate(`behavior_Themenvermeidung` = as.character(as_factor(v_sorge_umgang4))) %>%
+  mutate(`behavior_Themenvermeidung` = recode(
+    `behavior_Themenvermeidung`,
+    `Ja` = "Ja",
+    `Nicht Gewählt` = "Nein",
+    `Weiß nicht` = "weiß nicht / k.A."
+  )) %>%
+  mutate(`behavior_Themenvermeidung` = ifelse(
+    is.na(`behavior_Themenvermeidung`),
+    "weiß nicht / k.A.",
+    `behavior_Themenvermeidung`
+  )) %>%
+  select(starts_with("behavior_"), weight_ps) %>%
+  pivot_longer(cols = starts_with("behavior")) %>%
+  mutate(name = gsub("^behavior_(.*?)$", "\\1", name)) %>%
+  group_by(name, value) %>%
+  summarise(n_weighed = sum(weight_ps), .groups = "rowwise") %>%
+  pivot_wider(names_from = value, values_from = n_weighed) %>%
+  mutate(true_percent = `Ja` / (`Ja` + `Nein` + `weiß nicht / k.A.`)) %>%
+  mutate(false_percent = `Nein` / (`Ja` + `Nein` + `weiß nicht / k.A.`)) %>%
+  mutate(na_percent = `weiß nicht / k.A.` / (`Ja` + `Nein` + `weiß nicht / k.A.`)) %>%
+  mutate(name = recode(
+    name,
+    `Rückzugsgedanken` = "Denken Sie aus Sorge\num Ihre Sicherheit bzw.\ndie Ihrer Familie darüber\n nach, sich aus der\nPolitik zurückzuziehen?", 
+    `Themenvermeidung` = "Ich äußere mich zu\nbestimmten Themen\nseltener als früher."
+  )) %>% 
+  mutate(name = factor(
+    name,
+    levels = c(
+      "Denken Sie aus Sorge\num Ihre Sicherheit bzw.\ndie Ihrer Familie darüber\n nach, sich aus der\nPolitik zurückzuziehen?",
+      "Ich äußere mich zu\nbestimmten Themen\nseltener als früher."
+    ))
+  ) %>%
+  select(- `Ja`, -`Nein`, -`weiß nicht / k.A.`) %>%
+  rename(
+    `what` = "name",
+    `ja` = "true_percent",
+    `nein` = "false_percent",
+    `weiß nicht / k.A.` = "na_percent"
+  ) %>%
+  pivot_longer(cols = c("ja", "weiß nicht / k.A.", "nein")) %>%
+  mutate(name = factor(name, levels = c("nein", "weiß nicht / k.A.", "ja"))) %>%
+  ggplot(aes(x = what, y = value, fill = name)) +
+    geom_bar(stat = "identity", position = "stack") + 
+    geom_text(
+    aes(label = sprintf("%.1f%%", round(value * 100, 1))),
+    position = position_stack(0.5),    # move to center of bars
+     size = 4, color = "white",
+    lineheight = 1
+    ) + 
+    xlab(element_blank()) + 
+    ylab("prozentualer Anteil (Fälle gewichtet)") +
+    theme_minimal() +
+    theme(
+      legend.title = element_blank(),
+      axis.title = element_text(size = 12),
+      axis.text = element_text(size = 10)
+    ) +
+    
+   scale_y_continuous(labels = scales::percent) +
+   scale_fill_manual(values = c("#CCCCCC", "#999999", "#4D4D4D"))
+
+ggsave("~/Lab/github/incivility/svg/behavioral_change.jpg", width = 24, height = 12, units = "cm")
+```
+
+
 ## Anteile UVs
 
 ```{r plain_shares, results = "asis", echo=FALSE}
 kommrep_loc_lm %>%
   select(
     `kommunikative Inzivilität`, 
-    `physische Inzivilität`,
-    # threat_verbal,
-    # threat_physical,
-    # threat_verbal_bin,
-    # threat_physical_bin,
-    female_diverse,
-    class,
-    racialized,
+    `physische Inzivilität` #,
+#    female_diverse,
+#    class,
+#    racialized,
     weight_ps
   ) %>%
-  # select(-threat_verbal, -threat_physical) %>%
   
-  mutate(class_lower = ifelse(class == "lower", TRUE, FALSE)) %>%
+  # mutate(class_lower = ifelse(class == "lower", TRUE, FALSE)) %>%
   
   mutate(across(everything(), as.vector)) %>%
   pivot_longer(
