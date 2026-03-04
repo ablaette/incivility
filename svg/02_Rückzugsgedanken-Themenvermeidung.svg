@@ -19,54 +19,55 @@
     }
   ]]></style>
 </defs>
-<rect width='100%' height='100%' style='stroke: none; fill: none;'/>
+<rect width='100%' height='100%' style='stroke: none; fill: #FFFFFF;'/>
 <defs>
   <clipPath id='cpMC4wMHw2ODAuMzF8MC4wMHwzNDAuMTY='>
     <rect x='0.00' y='0.00' width='680.31' height='340.16' />
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHw2ODAuMzF8MC4wMHwzNDAuMTY=)'>
+<rect x='0.000000000000064' y='0.00' width='680.31' height='340.16' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
 </g>
 <defs>
-  <clipPath id='cpNjcuMDN8NTY4LjEwfDUuNDh8MjcyLjAy'>
-    <rect x='67.03' y='5.48' width='501.06' height='266.54' />
+  <clipPath id='cpNjcuMDN8NTY4LjEwfDUuNDh8Mjc3LjI4'>
+    <rect x='67.03' y='5.48' width='501.06' height='271.80' />
   </clipPath>
 </defs>
-<g clip-path='url(#cpNjcuMDN8NTY4LjEwfDUuNDh8MjcyLjAy)'>
-<rect x='101.19' y='248.15' width='204.98' height='11.76' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #4D4D4D;' />
-<rect x='101.19' y='233.55' width='204.98' height='14.60' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #999999;' />
-<rect x='101.19' y='17.59' width='204.98' height='215.96' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #CCCCCC;' />
-<rect x='328.95' y='235.42' width='204.98' height='24.49' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #4D4D4D;' />
-<rect x='328.95' y='66.11' width='204.98' height='169.31' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #999999;' />
-<rect x='328.95' y='17.59' width='204.98' height='48.51' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #CCCCCC;' />
-<text x='203.69' y='258.10' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='25.92px' lengthAdjust='spacingAndGlyphs'>4.9%</text>
-<text x='203.69' y='244.92' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='25.92px' lengthAdjust='spacingAndGlyphs'>6.0%</text>
-<text x='203.69' y='129.64' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='32.25px' lengthAdjust='spacingAndGlyphs'>89.1%</text>
-<text x='431.44' y='251.73' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='32.25px' lengthAdjust='spacingAndGlyphs'>10.1%</text>
-<text x='431.44' y='154.84' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='32.25px' lengthAdjust='spacingAndGlyphs'>69.9%</text>
-<text x='431.44' y='45.92' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='32.25px' lengthAdjust='spacingAndGlyphs'>20.0%</text>
+<g clip-path='url(#cpNjcuMDN8NTY4LjEwfDUuNDh8Mjc3LjI4)'>
+<rect x='101.19' y='252.94' width='204.98' height='11.99' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #4D4D4D;' />
+<rect x='101.19' y='238.05' width='204.98' height='14.89' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #999999;' />
+<rect x='101.19' y='17.83' width='204.98' height='220.22' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #CCCCCC;' />
+<rect x='328.95' y='239.96' width='204.98' height='24.97' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #4D4D4D;' />
+<rect x='328.95' y='67.31' width='204.98' height='172.65' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #999999;' />
+<rect x='328.95' y='17.83' width='204.98' height='49.47' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #CCCCCC;' />
+<text x='203.69' y='263.00' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='25.92px' lengthAdjust='spacingAndGlyphs'>4.9%</text>
+<text x='203.69' y='249.57' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='25.92px' lengthAdjust='spacingAndGlyphs'>6.0%</text>
+<text x='203.69' y='132.01' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='32.25px' lengthAdjust='spacingAndGlyphs'>89.1%</text>
+<text x='431.44' y='256.51' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='32.25px' lengthAdjust='spacingAndGlyphs'>10.1%</text>
+<text x='431.44' y='157.70' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='32.25px' lengthAdjust='spacingAndGlyphs'>69.9%</text>
+<text x='431.44' y='46.64' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='32.25px' lengthAdjust='spacingAndGlyphs'>20.0%</text>
 </g>
 <g clip-path='url(#cpMC4wMHw2ODAuMzF8MC4wMHwzNDAuMTY=)'>
-<text x='62.10' y='263.49' text-anchor='end' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='14.45px' lengthAdjust='spacingAndGlyphs'>0%</text>
-<text x='62.10' y='202.91' text-anchor='end' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='20.02px' lengthAdjust='spacingAndGlyphs'>25%</text>
-<text x='62.10' y='142.33' text-anchor='end' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='20.02px' lengthAdjust='spacingAndGlyphs'>50%</text>
-<text x='62.10' y='81.75' text-anchor='end' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='20.02px' lengthAdjust='spacingAndGlyphs'>75%</text>
-<text x='62.10' y='21.18' text-anchor='end' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='25.58px' lengthAdjust='spacingAndGlyphs'>100%</text>
-<text x='203.69' y='284.12' text-anchor='middle' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='100.08px' lengthAdjust='spacingAndGlyphs'>Denken Sie aus Sorge</text>
-<text x='203.69' y='294.92' text-anchor='middle' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='103.95px' lengthAdjust='spacingAndGlyphs'>um Ihre Sicherheit bzw.</text>
-<text x='203.69' y='305.72' text-anchor='middle' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='108.94px' lengthAdjust='spacingAndGlyphs'>die Ihrer Familie darüber</text>
-<text x='203.69' y='316.52' text-anchor='middle' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='83.95px' lengthAdjust='spacingAndGlyphs'> nach, sich aus der</text>
-<text x='203.69' y='327.32' text-anchor='middle' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='104.50px' lengthAdjust='spacingAndGlyphs'>Politik zurückzuziehen?</text>
-<text x='431.44' y='284.12' text-anchor='middle' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='85.05px' lengthAdjust='spacingAndGlyphs'>Ich äußere mich zu</text>
-<text x='431.44' y='294.92' text-anchor='middle' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='90.97px' lengthAdjust='spacingAndGlyphs'>bestimmten Themen</text>
-<text x='431.44' y='305.72' text-anchor='middle' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='82.28px' lengthAdjust='spacingAndGlyphs'>seltener als früher.</text>
-<text transform='translate(14.08,138.75) rotate(-90)' text-anchor='middle' style='font-size: 12.00px; font-family: "Arial";' textLength='197.42px' lengthAdjust='spacingAndGlyphs'>prozentualer Anteil (gewichtete Fälle)</text>
-<rect x='585.24' y='113.54' width='15.86' height='15.86' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #CCCCCC;' />
-<rect x='585.24' y='130.82' width='15.86' height='15.86' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #999999;' />
-<rect x='585.24' y='148.10' width='15.86' height='15.86' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #4D4D4D;' />
-<text x='607.29' y='124.62' style='font-size: 8.80px; font-family: "Arial";' textLength='16.62px' lengthAdjust='spacingAndGlyphs'>nein</text>
-<text x='607.29' y='141.90' style='font-size: 8.80px; font-family: "Arial";' textLength='62.06px' lengthAdjust='spacingAndGlyphs'>weiß nicht / k.A.</text>
-<text x='607.29' y='159.18' style='font-size: 8.80px; font-family: "Arial";' textLength='6.84px' lengthAdjust='spacingAndGlyphs'>ja</text>
+<text x='62.10' y='268.51' text-anchor='end' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='14.45px' lengthAdjust='spacingAndGlyphs'>0%</text>
+<text x='62.10' y='206.73' text-anchor='end' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='20.02px' lengthAdjust='spacingAndGlyphs'>25%</text>
+<text x='62.10' y='144.96' text-anchor='end' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='20.02px' lengthAdjust='spacingAndGlyphs'>50%</text>
+<text x='62.10' y='83.19' text-anchor='end' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='20.02px' lengthAdjust='spacingAndGlyphs'>75%</text>
+<text x='62.10' y='21.42' text-anchor='end' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='25.58px' lengthAdjust='spacingAndGlyphs'>100%</text>
+<text x='203.69' y='289.38' text-anchor='middle' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='100.08px' lengthAdjust='spacingAndGlyphs'>Denken Sie aus Sorge</text>
+<text x='203.69' y='300.18' text-anchor='middle' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='103.95px' lengthAdjust='spacingAndGlyphs'>um Ihre Sicherheit bzw.</text>
+<text x='203.69' y='310.98' text-anchor='middle' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='108.94px' lengthAdjust='spacingAndGlyphs'>die Ihrer Familie darüber</text>
+<text x='203.69' y='321.78' text-anchor='middle' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='83.95px' lengthAdjust='spacingAndGlyphs'> nach, sich aus der</text>
+<text x='203.69' y='332.58' text-anchor='middle' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='104.50px' lengthAdjust='spacingAndGlyphs'>Politik zurückzuziehen?</text>
+<text x='431.44' y='289.38' text-anchor='middle' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='85.05px' lengthAdjust='spacingAndGlyphs'>Ich äußere mich zu</text>
+<text x='431.44' y='300.18' text-anchor='middle' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='90.97px' lengthAdjust='spacingAndGlyphs'>bestimmten Themen</text>
+<text x='431.44' y='310.98' text-anchor='middle' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='82.28px' lengthAdjust='spacingAndGlyphs'>seltener als früher.</text>
+<text transform='translate(14.08,141.38) rotate(-90)' text-anchor='middle' style='font-size: 12.00px; font-family: "Arial";' textLength='197.42px' lengthAdjust='spacingAndGlyphs'>prozentualer Anteil (gewichtete Fälle)</text>
+<rect x='585.24' y='116.17' width='15.86' height='15.86' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #CCCCCC;' />
+<rect x='585.24' y='133.45' width='15.86' height='15.86' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #999999;' />
+<rect x='585.24' y='150.73' width='15.86' height='15.86' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #4D4D4D;' />
+<text x='607.29' y='127.25' style='font-size: 8.80px; font-family: "Arial";' textLength='16.62px' lengthAdjust='spacingAndGlyphs'>nein</text>
+<text x='607.29' y='144.53' style='font-size: 8.80px; font-family: "Arial";' textLength='62.06px' lengthAdjust='spacingAndGlyphs'>weiß nicht / k.A.</text>
+<text x='607.29' y='161.81' style='font-size: 8.80px; font-family: "Arial";' textLength='6.84px' lengthAdjust='spacingAndGlyphs'>ja</text>
 </g>
 </g>
 </svg>
