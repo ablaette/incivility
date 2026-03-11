@@ -653,7 +653,7 @@ exit3 <- glm(
   family = binomial("logit")
 )
 
-modelsummary::modelsummary(
+tab <- modelsummary::modelsummary(
   models = list(
     A = exit1,
     B = exit2,
@@ -661,7 +661,7 @@ modelsummary::modelsummary(
   ),
   estimate = "{estimate} ({std.error}){stars}",
   statistic = NULL,
-  output = "latex",
+  output = "flextable",
   coef_map = c(
     "kommunikative InzivilitätTRUE" = "kommunikative Inzivilität",
     "physische InzivilitätTRUE" = "physische Inzivilität",
@@ -685,7 +685,6 @@ modelsummary::modelsummary(
 read_docx() |>
   body_add_flextable(tab) |>
   print(target = "~/Lab/github/incivility/docx/01_Rückzugsgedanken.docx")
-
 ```
 
 \newpage
@@ -715,11 +714,15 @@ muted3 <- glm(
   family = binomial("logit")
 )
 
-tab <- modelsummary::modelsummary(
-  models = list(A = muted1, B = muted2, C = muted3),
+modelsummary::modelsummary(
+  models = list(
+    A = muted1,
+    B = muted2,
+    C = muted3
+  ),
   estimate = "{estimate} ({std.error}){stars}",
   statistic = NULL,
-  output = "flextable",
+  output = "latex",
   coef_map = c(
     "kommunikative InzivilitätTRUE" = "kommunikative Inzivilität",
     "physische InzivilitätTRUE" = "physische Inzivilität",
@@ -738,8 +741,8 @@ tab <- modelsummary::modelsummary(
 #  , gof_omit = "BIC|AIC|RMSE|Log.Lik|F"
 )
 
-read_docx() |>
-  body_add_flextable(tab) |>
-  print(target = "~/Lab/github/incivility/docx/02_Themenvermeidung.docx")
+# read_docx() |>
+#   body_add_flextable(tab) |>
+#   print(target = "~/Lab/github/incivility/docx/02_Themenvermeidung.docx")
 ```
 

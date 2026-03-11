@@ -19,43 +19,44 @@
     }
   ]]></style>
 </defs>
-<rect width='100%' height='100%' style='stroke: none; fill: none;'/>
+<rect width='100%' height='100%' style='stroke: none; fill: #FFFFFF;'/>
 <defs>
   <clipPath id='cpMC4wMHw2ODAuMzF8MC4wMHwzNDAuMTY='>
     <rect x='0.00' y='0.00' width='680.31' height='340.16' />
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHw2ODAuMzF8MC4wMHwzNDAuMTY=)'>
+<rect x='0.00' y='0.00' width='680.31' height='340.16' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
 </g>
 <defs>
-  <clipPath id='cpNjEuNDd8Njc0Ljg0fDUuNDh8MzE1LjIy'>
-    <rect x='61.47' y='5.48' width='613.37' height='309.74' />
+  <clipPath id='cpNjEuNDd8Njc0Ljg0fDUuNDh8MzIwLjQ4'>
+    <rect x='61.47' y='5.48' width='613.37' height='315.00' />
   </clipPath>
 </defs>
-<g clip-path='url(#cpNjEuNDd8Njc0Ljg0fDUuNDh8MzE1LjIy)'>
-<rect x='281.90' y='196.64' width='172.51' height='104.51' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #999999;' />
-<rect x='90.22' y='19.56' width='172.51' height='281.58' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #999999;' />
-<rect x='473.57' y='237.90' width='172.51' height='63.24' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #999999;' />
-<text x='368.15' y='239.30' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='32.25px' lengthAdjust='spacingAndGlyphs'>14.6%</text>
-<text x='368.15' y='252.96' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='83.16px' lengthAdjust='spacingAndGlyphs'>(ungew. N = 319</text>
-<text x='368.15' y='266.62' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='70.50px' lengthAdjust='spacingAndGlyphs'>gew. N = 315)</text>
-<text x='176.47' y='150.76' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='32.25px' lengthAdjust='spacingAndGlyphs'>39.2%</text>
-<text x='176.47' y='164.42' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='83.16px' lengthAdjust='spacingAndGlyphs'>(ungew. N = 930</text>
-<text x='176.47' y='178.08' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='70.50px' lengthAdjust='spacingAndGlyphs'>gew. N = 849)</text>
-<text x='559.83' y='259.94' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='25.92px' lengthAdjust='spacingAndGlyphs'>8.8%</text>
-<text x='559.83' y='273.59' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='83.16px' lengthAdjust='spacingAndGlyphs'>(ungew. N = 190</text>
-<text x='559.83' y='287.25' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='70.50px' lengthAdjust='spacingAndGlyphs'>gew. N = 191)</text>
+<g clip-path='url(#cpNjEuNDd8Njc0Ljg0fDUuNDh8MzIwLjQ4)'>
+<rect x='281.90' y='199.88' width='172.51' height='106.28' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #999999;' />
+<rect x='90.22' y='19.80' width='172.51' height='286.36' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #999999;' />
+<rect x='473.57' y='241.85' width='172.51' height='64.31' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #999999;' />
+<text x='368.15' y='243.44' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='32.25px' lengthAdjust='spacingAndGlyphs'>14.6%</text>
+<text x='368.15' y='257.09' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='83.16px' lengthAdjust='spacingAndGlyphs'>(ungew. N = 319</text>
+<text x='368.15' y='270.75' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='70.50px' lengthAdjust='spacingAndGlyphs'>gew. N = 315)</text>
+<text x='176.47' y='153.39' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='32.25px' lengthAdjust='spacingAndGlyphs'>39.2%</text>
+<text x='176.47' y='167.05' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='83.16px' lengthAdjust='spacingAndGlyphs'>(ungew. N = 930</text>
+<text x='176.47' y='180.71' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='70.50px' lengthAdjust='spacingAndGlyphs'>gew. N = 849)</text>
+<text x='559.83' y='264.42' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='25.92px' lengthAdjust='spacingAndGlyphs'>8.8%</text>
+<text x='559.83' y='278.08' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='83.16px' lengthAdjust='spacingAndGlyphs'>(ungew. N = 190</text>
+<text x='559.83' y='291.73' text-anchor='middle' style='font-size: 11.38px;fill: #FFFFFF; font-family: "Arial";' textLength='70.50px' lengthAdjust='spacingAndGlyphs'>gew. N = 191)</text>
 </g>
 <g clip-path='url(#cpMC4wMHw2ODAuMzF8MC4wMHwzNDAuMTY=)'>
-<text x='56.54' y='304.72' text-anchor='end' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='14.45px' lengthAdjust='spacingAndGlyphs'>0%</text>
-<text x='56.54' y='232.93' text-anchor='end' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='20.02px' lengthAdjust='spacingAndGlyphs'>10%</text>
-<text x='56.54' y='161.14' text-anchor='end' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='20.02px' lengthAdjust='spacingAndGlyphs'>20%</text>
-<text x='56.54' y='89.35' text-anchor='end' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='20.02px' lengthAdjust='spacingAndGlyphs'>30%</text>
-<text x='56.54' y='17.56' text-anchor='end' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='20.02px' lengthAdjust='spacingAndGlyphs'>40%</text>
-<text x='176.47' y='327.32' text-anchor='middle' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='87.81px' lengthAdjust='spacingAndGlyphs'>weiblich oder divers</text>
-<text x='368.15' y='327.32' text-anchor='middle' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='139.53px' lengthAdjust='spacingAndGlyphs'>niedrigere Schichtzugehörigkeit</text>
-<text x='559.83' y='327.32' text-anchor='middle' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='96.16px' lengthAdjust='spacingAndGlyphs'>migrantisierte Gruppe</text>
-<text transform='translate(14.08,160.35) rotate(-90)' text-anchor='middle' style='font-size: 12.00px; font-family: "Arial";' textLength='197.42px' lengthAdjust='spacingAndGlyphs'>prozentualer Anteil (gewichtete Fälle)</text>
+<text x='56.54' y='309.74' text-anchor='end' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='14.45px' lengthAdjust='spacingAndGlyphs'>0%</text>
+<text x='56.54' y='236.73' text-anchor='end' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='20.02px' lengthAdjust='spacingAndGlyphs'>10%</text>
+<text x='56.54' y='163.73' text-anchor='end' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='20.02px' lengthAdjust='spacingAndGlyphs'>20%</text>
+<text x='56.54' y='90.72' text-anchor='end' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='20.02px' lengthAdjust='spacingAndGlyphs'>30%</text>
+<text x='56.54' y='17.71' text-anchor='end' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='20.02px' lengthAdjust='spacingAndGlyphs'>40%</text>
+<text x='176.47' y='332.58' text-anchor='middle' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='87.81px' lengthAdjust='spacingAndGlyphs'>weiblich oder divers</text>
+<text x='368.15' y='332.58' text-anchor='middle' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='139.53px' lengthAdjust='spacingAndGlyphs'>niedrigere Schichtzugehörigkeit</text>
+<text x='559.83' y='332.58' text-anchor='middle' style='font-size: 10.00px;fill: #4D4D4D; font-family: "Arial";' textLength='96.16px' lengthAdjust='spacingAndGlyphs'>migrantisierte Gruppe</text>
+<text transform='translate(14.08,162.98) rotate(-90)' text-anchor='middle' style='font-size: 12.00px; font-family: "Arial";' textLength='197.42px' lengthAdjust='spacingAndGlyphs'>prozentualer Anteil (gewichtete Fälle)</text>
 </g>
 </g>
 </svg>
