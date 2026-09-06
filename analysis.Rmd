@@ -1247,6 +1247,234 @@ p_exit_class_comm <- pred_exit_class_comm |>
   plot_layout(guides = "collect")
 ```
 
+\newpage
+
+## New plots / marginal effects
+
+```{r, fig.height = 12, fig.width = 9, out.width = "100%"}
+common_y <- scale_y_continuous(
+  breaks = seq(-.25, .25, by = .05),
+  labels = scales::label_percent(accuracy = 1)
+)
+
+common_coord <- coord_cartesian(
+  ylim = c(-.25, .25)
+)
+
+make_me_plot <- function(
+    model,
+    incivility_type,
+    moderator,
+    moderator_labels
+) {
+
+  me <- avg_comparisons(
+    model,
+    variables = incivility_type,
+    by = moderator
+  )
+
+  ggplot(
+    me,
+    aes(
+      x = .data[[moderator]],
+      y = estimate
+    )
+  ) +
+    geom_hline(yintercept = 0, linetype = "dotted") +
+    geom_point(size = 2.5) +
+    geom_errorbar(
+      aes(ymin = conf.low, ymax = conf.high),
+      width = .05
+    ) +
+    scale_x_discrete(labels = moderator_labels) +
+    common_y +
+    common_coord +
+    labs(
+      title = incivility_type,
+      x = NULL,
+      y = NULL
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+      plot.title = element_text(
+        hjust = .5,
+        face = "bold",
+        size = 11
+      ),
+      panel.grid.minor.y = element_blank()
+    )
+}
+
+p_exit_gender_comm <- make_me_plot(
+  exit_gender,
+  "kommunikative Inzivilität",
+  "female_diverse",
+  c(
+    "FALSE" = "Men",
+    "TRUE" = "Women/diverse"
+  )
+)
+
+p_exit_race_comm <- make_me_plot(
+  exit_race,
+  "kommunikative Inzivilität",
+  "racialized",
+  c(
+    "FALSE" = "No migration\nbackground",
+    "TRUE" = "Migration\nbackground"
+  )
+)
+
+p_exit_gender_phys <- make_me_plot(
+  exit_gender,
+  "physische Inzivilität",
+  "female_diverse",
+  c(
+    "FALSE" = "Men",
+    "TRUE" = "Women/diverse"
+  )
+)
+
+p_exit_race_phys <- make_me_plot(
+  exit_race,
+  "physische Inzivilität",
+  "racialized",
+  c(
+    "FALSE" = "No migration\nbackground",
+    "TRUE" = "Migration\nbackground"
+  )
+)
+
+make_class_me_plot <- function(model, incivility_type) {
+
+  me <- comparisons(
+    model,
+    variables = incivility_type,
+    newdata = datagrid(
+      class_num = seq(0, 1, by = .2)
+    )
+  )
+
+  ggplot(
+    me,
+    aes(
+      x = class_num,
+      y = estimate
+    )
+  ) +
+    geom_hline(yintercept = 0, linetype = "dotted") +
+    geom_line() +
+    geom_point(size = 2.5) +
+    geom_errorbar(
+      aes(ymin = conf.low, ymax = conf.high),
+      width = .02
+    ) +
+    scale_x_continuous(
+      breaks = seq(0, 1, .2),
+      labels = c(
+    "Upper",
+    "Upper\nmiddle",
+    "Middle",
+    "Lower\nmiddle",
+    "Working",
+    "Lower"
+  )
+    ) +
+    common_y +
+    common_coord +
+    labs(
+      x = NULL,
+      y = NULL
+    ) +
+    theme_minimal() +
+    theme(
+      panel.grid.minor.y = element_blank()
+    )
+}
+
+p_exit_class_comm <- make_class_me_plot(
+  exit_class,
+  "kommunikative Inzivilität"
+)
+
+p_exit_class_phys <- make_class_me_plot(
+  exit_class,
+  "physische Inzivilität"
+)
+
+no_y_axis <- theme(
+  axis.title.y = element_blank(),
+  axis.text.y = element_blank(),
+  axis.ticks.y = element_blank()
+)
+
+
+row_gender <- (
+    p_exit_gender_comm + labs(subtitle = "Gender", title = NULL) |
+    p_exit_gender_phys + labs(y = NULL, title = NULL) + no_y_axis
+  )
+
+row_race <- (
+    p_exit_race_comm + labs(title = NULL, subtitle = "Migration background") |
+    p_exit_race_phys + labs(y = NULL, title = NULL) + no_y_axis
+  )
+
+row_class <- (
+    p_exit_class_comm + labs(title = NULL, subtitle = "Social class") |
+    p_exit_class_phys + labs(y = NULL, title = NULL) + no_y_axis
+  )
+
+y_title <- wrap_elements(
+  full = textGrob(
+    "Average change in predicted probability",
+    rot = 90,
+    gp = gpar(fontsize = 11)
+  )
+)
+
+head_comm <- wrap_elements(
+  full = textGrob(
+    "Communicative incivility",
+    gp = gpar(fontsize = 11, fontface = "bold")
+  )
+)
+
+head_phys <- wrap_elements(
+  full = textGrob(
+    "Physical incivility",
+    gp = gpar(fontsize = 11, fontface = "bold")
+  )
+)
+
+column_headers <- head_comm | head_phys
+
+
+#main_plot <- row_gender / row_race / row_class
+
+main_plots <- (
+  (head_comm | head_phys) /
+  (row_gender / row_race / row_class)
+) +
+  plot_layout(
+    heights = c(.04, 1)
+  )
+
+
+(y_title | main_plots)  + 
+  plot_layout(
+    widths = c(.035, 1),
+    axis_titles = "collect"
+  ) &
+  theme(
+    plot.subtitle = element_text(
+      face = "bold",
+      size = 10,
+      hjust = 0
+    )
+  )
+```
+
 
 \newpage
 \begin{landscape}
@@ -1365,14 +1593,14 @@ muted_class <- glm(
 \newpage
 
 ```{r}
-make_pred_plot <- function(model, incivility, moderator, legend_title) {
+make_pred_plot <- function(model, incivility_type, moderator, legend_title) {
 
   pred <- avg_predictions(model, by = c(incivility_type, moderator))
 
   ggplot(
     pred,
     aes(
-      x = .data[[incivility]],
+      x = .data[[incivility_type]],
       y = estimate,
       group = .data[[moderator]],
       linetype = .data[[moderator]]
@@ -1390,15 +1618,25 @@ make_pred_plot <- function(model, incivility, moderator, legend_title) {
         "TRUE" = "Yes"
       )
     ) +
+    scale_linetype_discrete(
+      labels = c("FALSE" = "No", "TRUE" = "Yes")
+    ) +
     scale_y_continuous(
+      breaks = seq(0, .25, by = .05),
       labels = scales::label_percent()
     ) +
+    coord_cartesian(ylim = c(0, .25)) +
     labs(
+      title = incivility_type,
       x = NULL,
       y = "Predicted probability",
       linetype = legend_title
     ) +
-    theme_minimal()
+    theme_minimal() +
+    theme(
+      plot.title = element_text(hjust = .5, face = "bold", size = 11),
+      panel.grid.minor.y = element_blank()
+    )
 }
 
 p_muted_gender_phys <- make_pred_plot(
@@ -1429,228 +1667,432 @@ p_muted_race_comm <- make_pred_plot(
   "Migration background"
 )
 
-pred_muted_gender_phys <- avg_predictions(
-  muted_gender,
-  by = c("physische Inzivilität", "female_diverse")
+class_labels <- c(
+  "Oberschicht",
+  "obere Mittelschicht",
+  "Mittelschicht",
+  "untere Mittelschicht",
+  "Arbeiterschicht",
+  "Unterschicht"
 )
 
-p_muted_gender_phys <- ggplot(
-  pred_muted_gender_phys,
-  aes(
-    x = `physische Inzivilität`,
-    y = estimate,
-    group = female_diverse,
-    linetype = female_diverse
-  )
-) +
-  geom_line() +
-  geom_point(size = 3) +
-  geom_errorbar(
-    aes(ymin = conf.low, ymax = conf.high),
-    width = .05
-  ) +
-  scale_y_continuous(
-    labels = scales::label_percent()
-  ) +
-  labs(
-    x = "physical incivility",
-    y = "predicted probabilities",
-    linetype = "female/diverse"
-  ) +
-  common_theme +
-  common_scale
+make_class_plot <- function(model, incivility_type) {
 
-pred_muted_gender_comm <- avg_predictions(
-  muted_gender,
-  by = c("kommunikative Inzivilität", "female_diverse")
-)
-
-p_muted_gender_comm <- ggplot(
-  pred_muted_gender_comm,
-  aes(
-    x = `kommunikative Inzivilität`,
-    y = estimate,
-    group = female_diverse,
-    linetype = female_diverse
-  )
-) +
-  geom_line() +
-  geom_point(size = 3) +
-  geom_errorbar(
-    aes(ymin = conf.low, ymax = conf.high),
-    width = .05
-  ) +
-  scale_y_continuous(
-    labels = scales::label_percent()
-  ) +
-  labs(
-    x = "communicative incivility",
-    y = "predicted probabilities",
-    linetype = "female/diverse"
-  ) +
-  theme_minimal()
-
-pred_muted_race_phys <- avg_predictions(
-  muted_race,
-  by = c("physische Inzivilität", "racialized")
-)
-
-p_muted_race_phys <- ggplot(
-  pred_muted_race_phys,
-  aes(
-    x = `physische Inzivilität`,
-    y = estimate,
-    group = racialized,
-    linetype = racialized
-  )
-) +
-  geom_line() +
-  geom_point(size = 3) +
-  geom_errorbar(
-    aes(ymin = conf.low, ymax = conf.high),
-    width = .05
-  ) +
-  scale_y_continuous(
-    labels = scales::label_percent()
-  ) +
-  labs(
-    x = "physische Inzivilität",
-    y = "Vorhergesagte Wahrscheinlichkeit",
-    linetype = "rassifiziert"
-  ) +
-  theme_minimal()
-
-
-pred_muted_race_comm <- avg_predictions(
-  muted_race,
-  by = c("kommunikative Inzivilität", "racialized")
-)
-
-p_muted_race_comm <- ggplot(
-  pred_muted_race_comm,
-  aes(
-    x = `kommunikative Inzivilität`,
-    y = estimate,
-    group = racialized,
-    linetype = racialized
-  )
-) +
-  geom_line() +
-  geom_point(size = 3) +
-  geom_errorbar(
-    aes(ymin = conf.low, ymax = conf.high),
-    width = .05
-  ) +
-  scale_y_continuous(
-    labels = scales::label_percent()
-  ) +
-  labs(
-    x = "Kommunikative Inzivilität",
-    y = "Vorhergesagte Wahrscheinlichkeit",
-    linetype = "rassifiziert"
-  ) +
-  theme_minimal()
-
-
-pred_muted_class_phys <- avg_predictions(
-  muted_class,
-  by = c("physische Inzivilität", "class_num")
-)
-
-p_muted_class_phys <- pred_muted_class_phys |> 
-  as_tibble() |> 
-  mutate(class_num = factor(class_num)) |> 
-  mutate(
-    class_num = factor(
-      class_num,
-      levels = c(0, 0.2, 0.4, 0.6, 0.8, 1),
-      labels = rev(c(
-      "Oberschicht",
-      "obere Mittelschicht",
-      "Mittelschicht",
-      "untere Mittelschicht",
-      "Arbeiterschicht",
-      "Unterschicht"
-      ))
+  pred <- avg_predictions(
+    model,
+    by = c(incivility_type, "class_num")
+  ) |>
+    as_tibble() |>
+    mutate(
+      class_num = factor(
+        class_num,
+        levels = c(0, .2, .4, .6, .8, 1),
+        labels = class_labels
+      )
     )
-  ) |> 
+
   ggplot(
+    pred,
     aes(
-      x = `physische Inzivilität`,
+      x = .data[[incivility_type]],
       y = estimate,
       group = class_num,
       linetype = class_num
     )
   ) +
-  geom_line() +
-  geom_point(size = 3) +
-  geom_errorbar(
-    aes(ymin = conf.low, ymax = conf.high),
-    width = .05
-  ) +
-  scale_y_continuous(
-    labels = scales::label_percent()
-  ) +
-  labs(
-    x = "physische Inzivilität",
-    y = "Vorhergesagte Wahrscheinlichkeit",
-    linetype = "Schicht"
-  ) +
-  theme_minimal()
+    geom_line() +
+    geom_point(size = 2.5) +
+    geom_errorbar(
+      aes(ymin = conf.low, ymax = conf.high),
+      width = .05
+    ) +
+    scale_x_discrete(
+      labels = c("FALSE" = "No", "TRUE" = "Yes")
+    ) +
+    scale_y_continuous(
+      breaks = seq(0, .25, by = .05),
+      labels = scales::label_percent()
+    ) +
+    coord_cartesian(ylim = c(0, .25)) +
+    
+    
+    labs(
+      title = incivility_type,
+      x = NULL,
+      y = "Predicted probability",
+      linetype = "Social class"
+    ) +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(
+        hjust = .5,
+        face = "bold",
+        size = 11
+      ),
+      panel.grid.minor.y = element_blank()
+    )
+}
 
-
-pred_muted_class_comm <- avg_predictions(
+p_muted_class_comm <- make_class_plot(
   muted_class,
-  by = c("kommunikative Inzivilität", "class_num")
+  "kommunikative Inzivilität"
 )
 
-p_muted_class_comm <- pred_muted_class_comm |> 
-  as_tibble() |> 
-  mutate(class_num = factor(class_num)) |> 
-  mutate(
-    class_num = factor(
-      class_num,
-      levels = c(0, 0.2, 0.4, 0.6, 0.8, 1),
-      labels = rev(c(
-      "Oberschicht",
-      "obere Mittelschicht",
-      "Mittelschicht",
-      "untere Mittelschicht",
-      "Arbeiterschicht",
-      "Unterschicht"
-      ))
-    )
-  ) |> 
-  ggplot(
-    aes(
-      x = `kommunikative Inzivilität`,
-      y = estimate,
-      group = class_num,
-      linetype = class_num
-    )
+p_muted_class_phys <- make_class_plot(
+  muted_class,
+  "physische Inzivilität"
+)
+
+no_y_axis <- theme(
+  axis.title.y = element_blank(),
+  axis.text.y  = element_blank(),
+  axis.ticks.y = element_blank()
+)
+
+no_x_labels <- theme(
+  axis.text.x  = element_blank(),
+  axis.ticks.x = element_blank()
+)
+
+row_gender <- (
+    p_muted_gender_comm + no_x_labels | 
+    p_muted_gender_phys + labs(y = NULL) + no_y_axis + no_x_labels |
+    guide_area()
   ) +
-  geom_line() +
-  geom_point(size = 3) +
-  geom_errorbar(
-    aes(ymin = conf.low, ymax = conf.high),
-    width = .05
+  plot_layout(
+    guides = "collect",
+    widths = c(1, 1, .6)
+  )
+
+row_race <- (
+    p_muted_race_comm + labs(title = NULL) |
+    p_muted_race_phys + labs(y = NULL, title = NULL) + no_y_axis |
+    guide_area()
   ) +
-  scale_y_continuous(
-    labels = scales::label_percent()
+  plot_layout(
+    guides = "collect",
+    widths = c(1, 1, .6)
+)
+
+row_class <- (
+    p_muted_class_comm + labs(title = NULL) |
+    p_muted_class_phys + labs(y = NULL, title = NULL) + no_y_axis |
+    guide_area()
   ) +
-  labs(
-    x = "Kommunikative Inzivilität",
-    y = "Vorhergesagte Wahrscheinlichkeit",
-    linetype = "Schicht"
-  ) +
-  theme_minimal()
-(
-  (p_muted_gender_comm | p_muted_gender_phys) /
-  (p_muted_race_comm | p_muted_race_phys) /
-  (p_muted_class_comm | p_muted_class_phys)
-) +
-  plot_layout(guides = "collect")
+  plot_layout(
+    guides = "collect",
+    widths = c(1, 1, .6)
+)
+
+# /
+  #(p_muted_class_comm | p_muted_class_phys)
+
+row_gender / row_race / row_class +
+  theme(
+    # legend.position = "right",
+    legend.box.just = "top"#,
+    # legend.spacing.y = unit(0.5, "cm"),
+    # legend.margin = margin(l = -15)
+  )
 ```
 
 
+```{r}
+cmp_class_comm <- comparisons(
+  muted_class,
+  variables = "kommunikative Inzivilität",
+  newdata = datagrid(
+    class_num = seq(0, 1, by = .2)
+  )
+)
 
+cmp_class_phys <- comparisons(
+  muted_class,
+  variables = "physische Inzivilität",
+  newdata = datagrid(
+    class_num = seq(0, 1, by = .2)
+  )
+)
+
+class_labels <- c(
+  "Upper",
+  "Upper middle",
+  "Middle",
+  "Lower middle",
+  "Working",
+  "Lower"
+)
+
+make_class_effect_plot <- function(x) {
+
+  ggplot(
+    x,
+    aes(
+      x = class_num,
+      y = estimate
+    )
+  ) +
+    geom_hline(
+      yintercept = 0,
+      linetype = "dotted"
+    ) +
+    geom_line() +
+    geom_point(size = 2.5) +
+    geom_errorbar(
+      aes(
+        ymin = conf.low,
+        ymax = conf.high
+      ),
+      width = .02
+    ) +
+    scale_x_continuous(
+      breaks = seq(0, 1, by = .2),
+      labels = class_labels
+    ) +
+    scale_y_continuous(
+      labels = scales::label_percent()
+    ) +
+    labs(
+      x = "",
+      y = "Change in predicted probability"
+    ) +
+    theme_minimal()
+}
+
+
+p_muted_class_comm <- make_class_effect_plot(cmp_class_comm)
+p_muted_class_phys <- make_class_effect_plot(cmp_class_phys)
+
+p_muted_class_comm | p_muted_class_phys
+```
+
+\newpage
+
+## NEW
+
+```{r, fig.height = 12, fig.width = 9, out.width = "100%"}
+common_y <- scale_y_continuous(
+  breaks = seq(-.10, .25, by = .05),
+  labels = scales::label_percent(accuracy = 1)
+)
+
+common_coord <- coord_cartesian(
+  ylim = c(-.10, .25)
+)
+
+make_me_plot <- function(
+    model,
+    incivility_type,
+    moderator,
+    moderator_labels
+) {
+
+  me <- avg_comparisons(
+    model,
+    variables = incivility_type,
+    by = moderator
+  )
+
+  ggplot(
+    me,
+    aes(
+      x = .data[[moderator]],
+      y = estimate
+    )
+  ) +
+    geom_hline(yintercept = 0, linetype = "dotted") +
+    geom_point(size = 2.5) +
+    geom_errorbar(
+      aes(ymin = conf.low, ymax = conf.high),
+      width = .05
+    ) +
+    scale_x_discrete(labels = moderator_labels) +
+    common_y +
+    common_coord +
+    labs(
+      title = incivility_type,
+      x = NULL,
+      y = NULL
+    ) +
+    theme_minimal(base_size = 15) +
+    theme(
+      plot.title = element_text(
+        hjust = .5,
+        face = "bold",
+        size = 11
+      ),
+      panel.grid.minor.y = element_blank()
+    )
+}
+
+p_muted_gender_comm <- make_me_plot(
+  muted_gender,
+  "kommunikative Inzivilität",
+  "female_diverse",
+  c(
+    "FALSE" = "Men",
+    "TRUE" = "Women/diverse"
+  )
+)
+
+p_muted_race_comm <- make_me_plot(
+  muted_race,
+  "kommunikative Inzivilität",
+  "racialized",
+  c(
+    "FALSE" = "No migration\nbackground",
+    "TRUE" = "Migration\nbackground"
+  )
+)
+
+p_muted_gender_phys <- make_me_plot(
+  muted_gender,
+  "physische Inzivilität",
+  "female_diverse",
+  c(
+    "FALSE" = "Men",
+    "TRUE" = "Women/diverse"
+  )
+)
+
+p_muted_race_phys <- make_me_plot(
+  muted_race,
+  "physische Inzivilität",
+  "racialized",
+  c(
+    "FALSE" = "No migration\nbackground",
+    "TRUE" = "Migration\nbackground"
+  )
+)
+
+make_class_me_plot <- function(model, incivility_type) {
+
+  me <- comparisons(
+    model,
+    variables = incivility_type,
+    newdata = datagrid(
+      class_num = seq(0, 1, by = .2)
+    )
+  )
+
+  ggplot(
+    me,
+    aes(
+      x = class_num,
+      y = estimate
+    )
+  ) +
+    geom_hline(yintercept = 0, linetype = "dotted") +
+    geom_line() +
+    geom_point(size = 2.5) +
+    geom_errorbar(
+      aes(ymin = conf.low, ymax = conf.high),
+      width = .02
+    ) +
+    scale_x_continuous(
+      breaks = seq(0, 1, .2),
+      labels = c(
+    "Upper",
+    "Upper\nmiddle",
+    "Middle",
+    "Lower\nmiddle",
+    "Working",
+    "Lower"
+  )
+    ) +
+    common_y +
+    common_coord +
+    labs(
+      x = NULL,
+      y = NULL
+    ) +
+    theme_minimal(
+      base_size = 15
+    ) + 
+    theme(
+      panel.grid.minor.y = element_blank()
+    )
+}
+
+p_muted_class_comm <- make_class_me_plot(
+  muted_class,
+  "kommunikative Inzivilität"
+)
+
+p_muted_class_phys <- make_class_me_plot(
+  muted_class,
+  "physische Inzivilität"
+)
+
+no_y_axis <- theme(
+  axis.title.y = element_blank(),
+  axis.text.y = element_blank(),
+  axis.ticks.y = element_blank()
+)
+
+
+row_gender <- (
+    p_muted_gender_comm + labs(subtitle = "Gender", title = NULL) |
+    p_muted_gender_phys + labs(y = NULL, title = NULL) + no_y_axis
+  )
+
+row_race <- (
+    p_muted_race_comm + labs(title = NULL, subtitle = "Migration background") |
+    p_muted_race_phys + labs(y = NULL, title = NULL) + no_y_axis
+  )
+
+row_class <- (
+    p_muted_class_comm + labs(title = NULL, subtitle = "Social class") |
+    p_muted_class_phys + labs(y = NULL, title = NULL) + no_y_axis
+  )
+
+y_title <- wrap_elements(
+  full = textGrob(
+    "Average change in predicted probability",
+    rot = 90,
+    gp = gpar(fontsize = 11)
+  )
+)
+
+head_comm <- wrap_elements(
+  full = textGrob(
+    "Communicative incivility",
+    gp = gpar(fontsize = 11, fontface = "bold")
+  )
+)
+
+head_phys <- wrap_elements(
+  full = textGrob(
+    "Physical incivility",
+    gp = gpar(fontsize = 11, fontface = "bold")
+  )
+)
+
+column_headers <- head_comm | head_phys
+
+
+#main_plot <- row_gender / row_race / row_class
+
+main_plots <- (
+  (head_comm | head_phys) /
+  (row_gender / row_race / row_class)
+) +
+  plot_layout(
+    heights = c(.04, 1)
+  )
+
+
+(y_title | main_plots)  + 
+  plot_layout(
+    widths = c(.035, 1),
+    axis_titles = "collect"
+  ) &
+  theme(
+    plot.subtitle = element_text(
+      face = "bold",
+      size = 10,
+      hjust = 0
+    )
+  )
+
+```
